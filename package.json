@@ -1,6 +1,6 @@
 {
-  "name": "react-github-pages",
-  "description": "React Github Pages",
+  "name": "direct-connect",
+  "description": "An simple direct chat using WebRTC (PeerJS) for the connection. No message server required.",
   "homepage": "",
   "private": true,
   "version": "0.0.0",
