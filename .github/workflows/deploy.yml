@@ -1,0 +1,54 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "npm"
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🔧 Override vite.config.js for GitHub Pages
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          sed -i "s|base: .*|base: '/${REPO_NAME}/',|" vite.config.js
+
+      - name: ✏️ Set `homepage` in package.json for GitHub Pages
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          jq '.homepage = "https://'"$GITHUB_ACTOR"'.github.io/${REPO_NAME}/"' package.json > temp.json && mv temp.json package.json
+
+      - name: 🔨 Build Project
+        run: npm run build
+
+      - name: 🚀 Upload artifact to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: 🌍 Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
