@@ -37,3 +37,6 @@ An simple direct chat using WebRTC (PeerJS) for the connection. No message serve
 ## License
 
 This project is provided as an example and is open source under the MIT License.
+
+### Resources
+- Icon from [https://www.svgrepo.com/show/97336/chat.svg](https://www.svgrepo.com/show/97336/chat.svg)
