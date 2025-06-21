@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import './App.css';
 import { useNavigate } from 'react-router-dom';
 import { usePeer } from './PeerContext';
+import './App.css';
 
 function App() {
   const [hostId, setHostId] = useState('Loading...');
   const [clientId, setClientId] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const peer = usePeer();
 
@@ -18,11 +19,13 @@ function App() {
   }, [peer]);
 
   const handleHost = () => {
+    setError('');
     console.log('Host ID:', hostId);
     navigate('/chat', { state: { isHost: true, hostId } });
   };
 
   const handleConnect = async () => {
+    setError('');
     setConnecting(true);
     try {
       const conn = peer.connect(clientId);
@@ -30,18 +33,21 @@ function App() {
         conn.send('Hello');
         navigate('/chat', { state: { isHost: false, hostId: clientId } });
       });
-      conn.on('error', () => {
-        alert('Connection failed!');
+      conn.on('error', (err) => {
+        console.error('Connection failed!', err);
+        setError('Connection failed! Please check the ID and try again.');
         setConnecting(false);
       });
       setTimeout(() => {
         if (conn.open === false) {
-          alert('Peer not found!');
+          console.error('Peer not found!');
+          setError('Peer not found! Please check the ID.');
           setConnecting(false);
         }
       }, 4000);
     } catch (e) {
-      alert('Error while connecting!');
+      console.error('Error while connecting!', e);
+      setError('Error while connecting!');
       setConnecting(false);
     }
   };
@@ -68,6 +74,11 @@ function App() {
             >
               {connecting ? 'Connecting...' : 'Connect'}
             </button>
+            {error && (
+              <div style={{ color: '#d63031', marginTop: 12, textAlign: 'center', minHeight: 24 }}>
+                {error}
+              </div>
+            )}
           </div>
           {/* Right side: Host */}
           <div className="app-side right">
