@@ -1,53 +1,89 @@
-import { useState } from 'react';
-import './App.css'
-import { Peer } from "peerjs";
-
-const peer = new Peer()
+import { useState, useEffect } from 'react';
+import './App.css';
+import { useNavigate } from 'react-router-dom';
+import { usePeer } from './PeerContext';
 
 function App() {
-  const [hostID, setHostID] = useState("Loading...")
-  const [clientID, setClientID] = useState('');
+  const [hostId, setHostId] = useState('Loading...');
+  const [clientId, setClientId] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const navigate = useNavigate();
+  const peer = usePeer();
 
-  peer.on('open', id => {
-    setHostID(id);
-    console.log('Server peer ID:', id);
-  });
+  useEffect(() => {
+    if (!peer) return;
+    const handleOpen = (id) => setHostId(id);
+    peer.on('open', handleOpen);
+    return () => peer.off('open', handleOpen);
+  }, [peer]);
 
-  peer.on('connection', conn => {
-    console.log('Connected to:', conn.peer);
-	  conn.on('data', function(data) {
-	    console.log('Received', data);
-      conn.send(data);
-	  });
-  });
+  const handleHost = () => {
+    console.log('Host ID:', hostId);
+    navigate('/chat', { state: { isHost: true, hostId } });
+  };
 
-  const handelSetClientID = (event) => {
-    setClientID(event.target.value);
-  }
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const conn = peer.connect(clientId);
+      conn.on('open', () => {
+        conn.send('Hello');
+        navigate('/chat', { state: { isHost: false, hostId: clientId } });
+      });
+      conn.on('error', () => {
+        alert('Connection failed!');
+        setConnecting(false);
+      });
+      setTimeout(() => {
+        if (conn.open === false) {
+          alert('Peer not found!');
+          setConnecting(false);
+        }
+      }, 4000);
+    } catch (e) {
+      alert('Error while connecting!');
+      setConnecting(false);
+    }
+  };
 
-  const connectToHost = () => {
-    console.log("Host ID:", clientID);
-    const conn = peer.connect(clientID);
-    conn.on("open", () => {
-      conn.send("hi!");
-    });
-    conn.on("data", function(data) {
-	    console.log('Received', data);
-      conn.send(data);
-	  })
-  }
-
-  return <>
-    <h1>Connect to: {hostID}</h1>
-
-    <input
-      type="text"
-      value={clientID}
-      onChange={handelSetClientID}
-      placeholder='Type ID'
-      ></input>
-    <button onClick={connectToHost}>Connect to Host</button>
-  </>
+  return (
+    <div className="app-root">
+      <div className="app-panel">
+        <h2 className="app-title">Direct Connect</h2>
+        <div className="app-flex">
+          {/* Left side: Connect */}
+          <div className="app-side left">
+            <input
+              type="text"
+              value={clientId}
+              onChange={e => setClientId(e.target.value)}
+              placeholder="Enter Peer ID"
+              className="app-input"
+              disabled={connecting}
+            />
+            <button
+              onClick={handleConnect}
+              className="app-button"
+              disabled={connecting || !clientId}
+            >
+              {connecting ? 'Connecting...' : 'Connect'}
+            </button>
+          </div>
+          {/* Right side: Host */}
+          <div className="app-side right">
+            <div className="app-id-label">Your Host ID:</div>
+            <div className="app-id-value">{hostId}</div>
+            <button
+              onClick={handleHost}
+              className="app-button host"
+            >
+              Host / Create
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;

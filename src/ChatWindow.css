@@ -1,0 +1,29 @@
+.chatwindow-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  /* Modern gradient background */
+  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  background-color: #e0eafc;
+}
+
+.chatwindow-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  padding: 40px;
+  min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chatwindow-panel h2 {
+  margin-bottom: 24px;
+}
+
+.chatwindow-panel p {
+  margin: 8px 0;
+  color: #636e72;
+}

@@ -1,0 +1,86 @@
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Modern gradient background */
+  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  /* fallback for old browsers */
+  background-color: #e0eafc;
+}
+
+.app-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  padding: 40px;
+  min-width: 500px;
+}
+
+.app-title {
+  text-align: center;
+  margin-bottom: 32px;
+  font-size: 2rem;
+  color: #222;
+}
+
+.app-flex {
+  display: flex;
+  gap: 32px;
+}
+
+.app-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.app-side.left {
+  border-right: 1px solid #eee;
+  padding-right: 24px;
+}
+
+.app-side.right {
+  padding-left: 24px;
+}
+
+.app-input {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.app-button {
+  padding: 8px 24px;
+  border-radius: 4px;
+  background: #0984e3;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.app-button:disabled {
+  background: #b2bec3;
+  cursor: not-allowed;
+}
+
+.app-button.host {
+  background: #00b894;
+}
+
+.app-id-label {
+  margin-bottom: 12px;
+  color: #636e72;
+  font-size: 14px;
+}
+
+.app-id-value {
+  font-weight: bold;
+  margin-bottom: 16px;
+  word-break: break-all;
+}
