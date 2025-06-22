@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Peer } from 'peerjs';
-import { usePeerContext } from './PeerContext';
-import CentralPanelLayout from "./CentralPanelLayout";
+import { usePeerContext } from '../PeerContext';
 import './App.css';
 
 function App() {
@@ -68,7 +67,6 @@ function App() {
   };
 
   return (
-    <CentralPanelLayout title="Direct Connect">
       <div className="app-flex">
         {/* Left side: Connect as Client */}
         <div className="app-side left">
@@ -105,7 +103,6 @@ function App() {
           </button>
         </div>
       </div>
-    </CentralPanelLayout>
   );
 }
 

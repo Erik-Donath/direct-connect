@@ -1,12 +1,16 @@
 import React from "react";
+import { Outlet } from "react-router-dom";
 import "./CentralPanelLayout.css";
 
-export default function CentralPanelLayout({ title, children }) {
+export default function CentralPanelLayout({ title }) {
   return (
     <div className="app-root">
       <div className="app-panel">
-        <h1 className="app-title">{title}</h1>
-        {children}
+        <h1 className="app-title">
+          <img src="/icon.svg" alt="App Icon" className="app-title-icon" />
+          {title}
+        </h1>
+        <Outlet />
       </div>
       <div className="footer-meta">
         <span className="copyright-notice">

@@ -35,6 +35,22 @@
   text-decoration: underline;
 }
 
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.app-title-icon {
+  height: 1.2em;
+  width: 1.2em;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 @media (max-width: 600px) {
   .footer-meta {
     bottom: 6px;

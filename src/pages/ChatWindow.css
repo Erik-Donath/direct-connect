@@ -149,6 +149,13 @@
   text-decoration: underline;
 }
 
+.chatwindow-back-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
 @media (max-width: 600px) {
   .chatwindow-panel {
     min-width: 0;

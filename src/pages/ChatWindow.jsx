@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { usePeerContext } from './PeerContext';
-import CentralPanelLayout from "./CentralPanelLayout";
+import { usePeerContext } from '../PeerContext';
 import './ChatWindow.css';
 
 function ChatWindow() {
@@ -72,7 +71,7 @@ function ChatWindow() {
   };
 
   return (
-    <CentralPanelLayout title="Direct Chat">
+    <>
       <div className="chatwindow-info">
         <span>Connection type: <b>{isHost ? 'Host' : 'Client'}</b></span>
         <span>Host ID: <b>{hostId}</b></span>
@@ -105,15 +104,17 @@ function ChatWindow() {
         </button>
       </div>
       {disconnected && (
-        <button
-          className="chatwindow-send"
-          style={{ marginTop: 16 }}
-          onClick={() => navigate('/')}
-        >
-          Back to Start
-        </button>
+        <div className="chatwindow-back-center">
+          <button
+            className="chatwindow-send"
+            style={{ marginTop: 16 }}
+            onClick={() => navigate('/')}
+          >
+            Back to Start
+          </button>
+        </div>
       )}
-    </CentralPanelLayout>
+    </>
   );
 }
 
