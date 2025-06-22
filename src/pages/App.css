@@ -116,13 +116,15 @@
   letter-spacing: 0.01em;
 }
 
-/* Footer-spezifische Styles sind jetzt in CentralPanelLayout.css ausgelagert */
+
 
 @media (max-width: 600px) {
   .app-root {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 0;
-    align-items: flex-start;
-    justify-content: flex-start;
   }
   .app-panel {
     min-width: unset;
@@ -131,6 +133,11 @@
     border-radius: 0;
     padding: 24px 8px;
     box-shadow: none;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
   .app-title {
     font-size: 1.3rem;
@@ -138,9 +145,42 @@
   }
   .app-flex {
     flex-direction: column;
-    gap: 16px;
+    gap: 0;
+    align-items: center;
+    width: 100%;
   }
   .app-side {
-    align-items: stretch;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+    border: none;
+  }
+  .app-side.left,
+  .app-side.right {
+    border: none;
+    padding: 0;
+  }
+  .app-side.left::after {
+    content: '';
+    display: block;
+    width: 80%;
+    height: 1px;
+    background: #eee;
+    margin: 16px auto;
+  }
+  .app-divider {
+    display: none !important;
+  }
+  .app-input {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+    margin: 0 auto 12px auto;
+    box-sizing: border-box;
+    padding: 10px 14px;
+  }
+  .app-panel {
+    border-radius: 16px;
+    margin: 0 8px;
   }
 }
