@@ -1,0 +1,38 @@
+.host-setup-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 32px;
+}
+.host-id-row {
+  display: flex;
+  align-items: center;
+  font-size: 1.5em;
+  margin-bottom: 16px;
+}
+.host-id {
+  font-family: monospace;
+  font-size: 1.2em;
+  background: #f7fafd;
+  border: 1px solid #b2bec3;
+  border-radius: 6px;
+  padding: 6px 16px;
+}
+.copy-hostid-btn {
+  margin-left: 12px;
+  font-size: 1em;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #b2bec3;
+  background: #f7fafd;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.copy-hostid-btn:active {
+  background: #dff9fb;
+}
+.host-waiting-status {
+  margin-top: 18px;
+  font-size: 1.1em;
+  color: #636e72;
+}

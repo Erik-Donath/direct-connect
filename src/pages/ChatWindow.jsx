@@ -1,60 +1,50 @@
 import { useEffect, useState, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { usePeerContext } from '../PeerContext';
 import './ChatWindow.css';
 
 function ChatWindow() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const { isHost, hostId } = location.state || {};
-  const { peer, connection, setConnection } = usePeerContext();
+  const { connection } = usePeerContext();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [disconnected, setDisconnected] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Redirect to / if no valid hostId or peer
+  // Wenn keine Verbindung besteht, zurück zur Startseite
   useEffect(() => {
-    if (!hostId || !peer) {
+    if (!connection) {
       navigate('/', { replace: true });
     }
-  }, [hostId, peer, navigate]);
+  }, [connection, navigate]);
 
-  // Host: wait for incoming connection
-  useEffect(() => {
-    if (!peer || !isHost) return;
-    const onConnection = (conn) => {
-      setConnection(conn);
-
-      // Remove all previous listeners to avoid duplicates
-      conn.off('data');
-      conn.on('data', (data) => {
-        setMessages((msgs) => [...msgs, { sender: 'Peer', text: data }]);
-      });
-    };
-    peer.on('connection', onConnection);
-    return () => peer.off('connection', onConnection);
-  }, [peer, isHost, setConnection]);
-
-  // Client: listen for incoming messages
+  // Warte, bis die Verbindung geöffnet ist, bevor der Chat gerendert wird
   useEffect(() => {
     if (!connection) return;
+    if (connection.open) {
+      setIsOpen(true);
+      return;
+    }
+    const handleOpen = () => setIsOpen(true);
+    connection.on('open', handleOpen);
+    return () => connection.off('open', handleOpen);
+  }, [connection]);
 
-    // Remove all previous listeners to avoid duplicates
-    connection.off('data');
+  // Höre auf eingehende Nachrichten, nur wenn die Verbindung offen ist
+  useEffect(() => {
+    if (!connection || !isOpen) return;
     const onData = (data) => {
       setMessages((msgs) => [...msgs, { sender: 'Peer', text: data }]);
     };
     connection.on('data', onData);
     return () => connection.off('data', onData);
-  }, [connection]);
+  }, [connection, isOpen]);
 
-  // Handle connection close event for both host and client
+  // Verbindung geschlossen
   useEffect(() => {
     if (!connection) return;
-    const handleClose = () => {
-      setDisconnected(true);
-    };
+    const handleClose = () => setDisconnected(true);
     connection.on('close', handleClose);
     return () => connection.off('close', handleClose);
   }, [connection]);
@@ -64,19 +54,16 @@ function ChatWindow() {
   }, [messages]);
 
   const sendMessage = () => {
-    if (!input.trim() || !connection) return;
+    if (!input.trim() || !connection || !isOpen) return;
     connection.send(input);
     setMessages((msgs) => [...msgs, { sender: 'You', text: input }]);
     setInput('');
   };
 
+  if (!connection || !isOpen) return null;
+
   return (
     <>
-      <div className="chatwindow-info">
-        <span>Connection type: <b>{isHost ? 'Host' : 'Client'}</b></span>
-        <span>Host ID: <b>{hostId}</b></span>
-        <span>Status: <b>{disconnected ? 'Disconnected' : connection ? 'Active' : isHost ? 'Waiting for connection...' : 'Connecting...'}</b></span>
-      </div>
       <div className="chatwindow-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`chatwindow-message ${msg.sender === 'You' ? 'self' : 'peer'}`}>
@@ -92,13 +79,13 @@ function ChatWindow() {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={disconnected ? 'Connection closed' : 'Type your message...'}
-          disabled={!connection || disconnected}
+          disabled={!connection || disconnected || !isOpen}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
         />
         <button
           className="chatwindow-send"
           onClick={sendMessage}
-          disabled={!connection || !input.trim() || disconnected}
+          disabled={!connection || !input.trim() || disconnected || !isOpen}
         >
           Send
         </button>
