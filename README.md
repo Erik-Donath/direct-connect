@@ -33,7 +33,7 @@ Start the app locally or deploy it to any static hosting platform. Share the gen
    ```bash
    npm run dev
    ```
-   The app will be available at `http://localhost:5173`.
+   The app will be available at `http://localhost:5173` or what is shown on screen.
 
 4. **Build for production**
    ```bash
