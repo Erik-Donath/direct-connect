@@ -11,7 +11,7 @@ function App() {
   const navigate = useNavigate();
   const { peer, setPeer, setConnection, peerRef } = usePeerContext();
 
-  // Wenn Host-Link mit host-id Query genutzt wird, direkt verbinden
+  // Automatically connects if a host link with a host-id query parameter is present
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const hostIdParam = params.get('host-id');
@@ -38,7 +38,6 @@ function App() {
     });
   };
 
-  // handleConnect nimmt jetzt optional eine ID
   const handleConnect = (idOverride) => {
     setError('');
     setConnecting(true);
@@ -76,7 +75,7 @@ function App() {
 
   return (
     <div className="app-flex">
-      {/* Client: Connect */}
+      {/* Client: Connect section */}
       <div className="app-side left">
         <input
           type="text"
@@ -99,7 +98,7 @@ function App() {
           </div>
         )}
       </div>
-      {/* Host: Setup */}
+      {/* Host: Setup section */}
       <div className="app-side right">
         <button
           onClick={handleHost}

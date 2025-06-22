@@ -1,19 +1,20 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import "./CentralPanelLayout.css";
+import "./MainLayout.css";
 
-export default function CentralPanelLayout({ title }) {
+export default function MainLayout({ title }) {
   const base = import.meta.env.BASE_URL || "/";
   return (
     <div className="app-root">
-      <div className="app-panel">
+      <header className="app-header"></header>
+      <main className="app-panel">
         <h1 className="app-title">
           <img src={`${base}icon.svg`} alt="App Icon" className="app-title-icon" />
           {title}
         </h1>
         <Outlet />
-      </div>
-      <div className="footer-meta">
+      </main>
+      <footer className="footer-meta">
         <span className="copyright-notice">
           &copy; 2025 Erik Donath
         </span>
@@ -25,7 +26,7 @@ export default function CentralPanelLayout({ title }) {
         >
           View on GitHub
         </a>
-      </div>
+      </footer>
     </div>
   );
 }

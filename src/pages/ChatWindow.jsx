@@ -12,14 +12,14 @@ function ChatWindow() {
   const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Wenn keine Verbindung besteht, zurück zur Startseite
+  // Redirects to the start page if there is no active connection
   useEffect(() => {
     if (!connection) {
       navigate('/', { replace: true });
     }
   }, [connection, navigate]);
 
-  // Warte, bis die Verbindung geöffnet ist, bevor der Chat gerendert wird
+  // Only renders the chat once the connection is open
   useEffect(() => {
     if (!connection) return;
     if (connection.open) {
@@ -31,7 +31,7 @@ function ChatWindow() {
     return () => connection.off('open', handleOpen);
   }, [connection]);
 
-  // Höre auf eingehende Nachrichten, nur wenn die Verbindung offen ist
+  // Listens for incoming messages when the connection is open
   useEffect(() => {
     if (!connection || !isOpen) return;
     const onData = (data) => {
@@ -41,7 +41,7 @@ function ChatWindow() {
     return () => connection.off('data', onData);
   }, [connection, isOpen]);
 
-  // Verbindung geschlossen
+  // Sets the disconnected state if the connection is closed
   useEffect(() => {
     if (!connection) return;
     const handleClose = () => setDisconnected(true);
@@ -49,6 +49,7 @@ function ChatWindow() {
     return () => connection.off('close', handleClose);
   }, [connection]);
 
+  // Scrolls to the latest message whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

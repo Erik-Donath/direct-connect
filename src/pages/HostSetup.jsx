@@ -14,10 +14,11 @@ function HostSetup() {
     const peer = peerRef.current;
     if (!peer) return;
     setPeerId(peer.id);
+    // Navigates to the chat page when a connection is established
     const onConnection = (conn) => {
       setConnection(conn);
       setWaiting(false);
-      navigate('/chat', { replace: true }); // remove query param
+      navigate('/chat', { replace: true });
     };
     peer.on('connection', onConnection);
     return () => peer.off('connection', onConnection);
