@@ -17,7 +17,7 @@ function HostSetup() {
     const onConnection = (conn) => {
       setConnection(conn);
       setWaiting(false);
-      navigate(`/chat?host-id=${peer.id}`);
+      navigate('/chat', { replace: true }); // remove query param
     };
     peer.on('connection', onConnection);
     return () => peer.off('connection', onConnection);
