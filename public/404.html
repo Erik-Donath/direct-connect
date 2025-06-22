@@ -12,7 +12,7 @@
       var path = currentPath.substring(base.length + "/404.html".length);
       var search = window.location.search;
       var hash = window.location.hash;
-      var newUrl = base + "/index.html?redirected&path=" + encodeURIComponent(path + search + hash);
+      var newUrl = base + "/#?redirected&path=" + encodeURIComponent(path + search + hash);
       console.log("Redirecting to:", newUrl);
       window.location.replace(newUrl);
     </script>
