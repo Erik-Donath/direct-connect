@@ -41,15 +41,6 @@ Start the app locally or deploy it to any static hosting platform. Share the gen
    ```
    The production build will be in the `dist/` folder.
 
-## Project Structure
-
-- `src/` – App source code
-  - `components/` – Reusable UI components
-  - `pages/` – Pages like the chat window
-  - `styles/` – Global and modular CSS files
-- `public/` – Static assets
-- `vite.config.js` – Vite configuration
-
 ## Technologies
 
 - [React](https://react.dev/)
