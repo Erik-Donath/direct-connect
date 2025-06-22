@@ -6,11 +6,12 @@
   </head>
   <body>
     <script>
-      var pathname = window.location.pathname;
+      var pathname = location.pathname;
       var base = pathname.slice(0, pathname.lastIndexOf('/') + 1);
-      var newUrl = base + 'index.html?redirected&path=' + encodeURIComponent(pathname.slice(base.length - 1) + window.location.search + window.location.hash);
-      console.log("Redirect to:", newUrl);
-      window.location.replace(newUrl);
+      var path = pathname.slice(base.length) + location.search + location.hash;
+      var newUrl = base + '#?redirected&path=' + encodeURIComponent(path);
+      console.log("Redirecting to:", newUrl);
+      location.replace(newUrl);
     </script>
     <p>Redirecting...</p>
   </body>
