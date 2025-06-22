@@ -7,11 +7,14 @@
   <body>
     <script>
       var currentPath = window.location.pathname;
-      var base = currentPath.lastIndexOf("/404.html") !== -1 ? currentPath.substring(0, index) : "";
+      var index = currentPath.lastIndexOf("/404.html");
+      var base = index !== -1 ? currentPath.substring(0, index) : "";
       var path = currentPath.substring(base.length + "/404.html".length);
       var search = window.location.search;
       var hash = window.location.hash;
-      window.location.replace(base + "/index.html?redirected&path=" + encodeURIComponent(path + search + hash));
+      var newUrl = base + "/index.html?redirected&path=" + encodeURIComponent(path + search + hash);
+      console.log("Redirecting to:", newUrl);
+      window.location.replace(newUrl);
     </script>
   </body>
 </html>
