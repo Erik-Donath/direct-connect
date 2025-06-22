@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePeerContext } from '../PeerContext';
+import Peer from 'peerjs';
 import './HostSetup.css';
 
 function HostSetup() {
@@ -13,7 +14,7 @@ function HostSetup() {
   useEffect(() => {
     const peer = peerRef.current;
     if (!peer) return;
-    setPeerId(peer.id);
+    
     // Navigates to the chat page when a connection is established
     const onConnection = (conn) => {
       setConnection(conn);
@@ -24,7 +25,17 @@ function HostSetup() {
     return () => peer.off('connection', onConnection);
   }, [peerRef, setConnection, navigate]);
 
-  if (!peerRef.current) return <div>Loading PeerJS...</div>;
+  useEffect(() => {
+    if (!peerRef.current) {
+      const peer = new Peer();
+      peerRef.current = peer;
+      peer.on('open', (id) => {
+        setPeerId(id);
+      });
+    } else {
+      setPeerId(peerRef.current.id);
+    }
+  }, [peerRef]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   const chatLink = peerId ? `${baseUrl}?host-id=${peerId}` : '';
