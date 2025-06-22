@@ -1,22 +1,33 @@
 .chatwindow-root {
+  position: relative;
+  min-height: 100vh;
+  height: auto;
+  padding: 40px 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
-  height: 100vh;
-  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  /* Use the same dynamic gradient as the main app */
+  background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 40%, #fbc2eb 80%, #a1c4fd 100%);
+  background-attachment: fixed;
+  background-color: #e0eafc;
 }
 
 .chatwindow-panel {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 18px;
   box-shadow: 0 4px 32px rgba(0,0,0,0.10);
-  padding: 32px 32px 24px 32px;
-  min-width: 380px;
-  max-width: 420px;
+  padding: 48px 56px 32px 56px;
+  min-width: 700px;
+  max-width: 900px;
   width: 100%;
+  min-height: 400px;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  transition: box-shadow 0.2s;
+  margin: auto 0;
 }
 
 .chatwindow-panel h2 {
@@ -35,9 +46,9 @@
 }
 
 .chatwindow-messages {
-  flex: 1 1 200px;
+  flex: 1 1 auto;
   min-height: 180px;
-  max-height: 260px;
+  max-height: 48vh;
   overflow-y: auto;
   background: #f7fafd;
   border-radius: 8px;
@@ -101,10 +112,55 @@
   cursor: not-allowed;
 }
 
+.footer-meta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.footer-meta .copyright-notice,
+.footer-meta .github-link {
+  pointer-events: auto;
+  background: rgba(255,255,255,0.92);
+  border-radius: 8px;
+  padding: 2px 12px;
+  margin: 2px 0;
+  font-size: 0.93rem;
+  color: #222;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  text-align: center;
+}
+
+.footer-meta .github-link {
+  color: #0984e3;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s, color 0.2s;
+}
+.footer-meta .github-link:hover {
+  opacity: 1;
+  color: #00b894;
+  text-decoration: underline;
+}
+
 @media (max-width: 600px) {
   .chatwindow-panel {
     min-width: 0;
     max-width: 98vw;
     padding: 16px 4px 12px 4px;
+  }
+  .footer-meta {
+    bottom: 6px;
+  }
+  .footer-meta .copyright-notice,
+  .footer-meta .github-link {
+    font-size: 0.88rem;
+    padding: 2px 6px;
   }
 }

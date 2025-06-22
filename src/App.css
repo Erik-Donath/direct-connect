@@ -3,18 +3,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Modern gradient background */
-  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  /* Dynamic gradient with multiple colors */
+  background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 40%, #fbc2eb 80%, #a1c4fd 100%);
+  background-attachment: fixed;
   /* fallback for old browsers */
   background-color: #e0eafc;
 }
 
 .app-panel {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-  padding: 40px;
-  min-width: 500px;
+  border-radius: 18px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+  padding: 56px 64px;
+  min-width: 700px;
+  max-width: 900px;
+  width: 100%;
+  transition: box-shadow 0.2s;
 }
 
 .app-title {
@@ -83,4 +87,79 @@
   font-weight: bold;
   margin-bottom: 16px;
   word-break: break-all;
+}
+
+.github-link {
+  display: block;
+  margin: 24px auto 0 auto;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #636e72;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.github-link:hover {
+  opacity: 1;
+  color: #0984e3;
+  text-decoration: underline;
+}
+
+.copyright-notice {
+  display: block;
+  margin: 12px auto 0 auto;
+  text-align: center;
+  font-size: 0.92rem;
+  color: #b2bec3;
+  opacity: 0.85;
+  letter-spacing: 0.01em;
+}
+
+.footer-meta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.footer-meta .copyright-notice,
+.footer-meta .github-link {
+  pointer-events: auto;
+  background: rgba(255,255,255,0.92);
+  border-radius: 8px;
+  padding: 2px 12px;
+  margin: 2px 0;
+  font-size: 0.93rem;
+  color: #222;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  text-align: center;
+}
+
+.footer-meta .github-link {
+  color: #0984e3;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s, color 0.2s;
+}
+.footer-meta .github-link:hover {
+  opacity: 1;
+  color: #00b894;
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .footer-meta {
+    bottom: 6px;
+  }
+  .footer-meta .copyright-notice,
+  .footer-meta .github-link {
+    font-size: 0.88rem;
+    padding: 2px 6px;
+  }
 }

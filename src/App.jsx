@@ -107,6 +107,14 @@ function App() {
           </div>
         </div>
       </div>
+      <div className="footer-meta">
+        <div className="copyright-notice">
+          © 2025 Erik Donath
+        </div>
+        <a className="github-link" href="https://github.com/Erik-Donath/direct-connect" target="_blank" rel="noopener noreferrer">
+          View on GitHub
+        </a>
+      </div>
     </div>
   );
 }
