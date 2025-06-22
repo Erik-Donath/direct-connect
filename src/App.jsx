@@ -1,55 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePeer } from './PeerContext';
+import { Peer } from 'peerjs';
+import { usePeerContext } from './PeerContext';
 import './App.css';
 
 function App() {
-  const [hostId, setHostId] = useState('Loading...');
+  const [hostId, setHostId] = useState('');
   const [clientId, setClientId] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const peer = usePeer();
-
-  useEffect(() => {
-    if (!peer) return;
-    const handleOpen = (id) => setHostId(id);
-    peer.on('open', handleOpen);
-    return () => peer.off('open', handleOpen);
-  }, [peer]);
+  const { peer, setPeer, setConnection } = usePeerContext();
 
   const handleHost = () => {
     setError('');
-    console.log('Host ID:', hostId);
-    navigate('/chat', { state: { isHost: true, hostId } });
+    setConnecting(false)
+    if (peer) peer.destroy(); // Clean up any previous peer
+
+    const newPeer = new Peer();
+    setPeer(newPeer);
+    newPeer.on('open', (id) => {
+      setHostId(id);
+      navigate('/chat', { state: { isHost: true, hostId: id } });
+    });
+    newPeer.on('error', (err) => {
+      console.error('PeerJS error:', err);
+      setError('PeerJS error: ' + err.message);
+    });
   };
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     setError('');
     setConnecting(true);
-    try {
-      const conn = peer.connect(clientId);
+    if (peer) peer.destroy();
+
+    const newPeer = new Peer();
+    setPeer(newPeer);
+    newPeer.on('open', () => {
+      const conn = newPeer.connect(clientId);
       conn.on('open', () => {
-        conn.send('Hello');
+        setConnection(conn);
         navigate('/chat', { state: { isHost: false, hostId: clientId } });
       });
       conn.on('error', (err) => {
-        console.error('Connection failed!', err);
+        console.error('Connection error:', err);
         setError('Connection failed! Please check the ID and try again.');
         setConnecting(false);
+        newPeer.destroy();
       });
       setTimeout(() => {
-        if (conn.open === false) {
-          console.error('Peer not found!');
+        if (!conn.open) {
+          console.warn('Connection timed out');
           setError('Peer not found! Please check the ID.');
           setConnecting(false);
+          newPeer.destroy();
         }
       }, 4000);
-    } catch (e) {
-      console.error('Error while connecting!', e);
-      setError('Error while connecting!');
+    });
+
+    newPeer.on('error', (err) => {
+      console.error('PeerJS error:', err);
+      setError('PeerJS error: ' + err.message);
       setConnecting(false);
-    }
+      newPeer.destroy();
+    });
   };
 
   return (
@@ -57,13 +71,13 @@ function App() {
       <div className="app-panel">
         <h2 className="app-title">Direct Connect</h2>
         <div className="app-flex">
-          {/* Left side: Connect */}
+          {/* Left side: Connect as Client */}
           <div className="app-side left">
             <input
               type="text"
               value={clientId}
               onChange={e => setClientId(e.target.value)}
-              placeholder="Enter Peer ID"
+              placeholder="Enter Host ID"
               className="app-input"
               disabled={connecting}
             />
@@ -83,7 +97,7 @@ function App() {
           {/* Right side: Host */}
           <div className="app-side right">
             <div className="app-id-label">Your Host ID:</div>
-            <div className="app-id-value">{hostId}</div>
+            <div className="app-id-value">{hostId || 'Press Host to generate'}</div>
             <button
               onClick={handleHost}
               className="app-button host"

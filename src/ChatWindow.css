@@ -3,27 +3,108 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  /* Modern gradient background */
   background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-  background-color: #e0eafc;
 }
 
 .chatwindow-panel {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-  padding: 40px;
-  min-width: 400px;
+  border-radius: 16px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+  padding: 32px 32px 24px 32px;
+  min-width: 380px;
+  max-width: 420px;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 .chatwindow-panel h2 {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  text-align: center;
+  color: #222;
 }
 
-.chatwindow-panel p {
-  margin: 8px 0;
+.chatwindow-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  font-size: 0.98rem;
   color: #636e72;
+}
+
+.chatwindow-messages {
+  flex: 1 1 200px;
+  min-height: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #f7fafd;
+  border-radius: 8px;
+  padding: 16px 8px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chatwindow-message {
+  max-width: 80%;
+  padding: 8px 14px;
+  border-radius: 16px;
+  font-size: 1rem;
+  word-break: break-word;
+  align-self: flex-start;
+  background: #dfe6e9;
+  color: #222;
+}
+
+.chatwindow-message.self {
+  align-self: flex-end;
+  background: #0984e3;
+  color: #fff;
+}
+
+.chatwindow-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chatwindow-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #b2bec3;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.chatwindow-input:focus {
+  border: 1.5px solid #0984e3;
+}
+
+.chatwindow-send {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: #0984e3;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.chatwindow-send:disabled {
+  background: #b2bec3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .chatwindow-panel {
+    min-width: 0;
+    max-width: 98vw;
+    padding: 16px 4px 12px 4px;
+  }
 }

@@ -5,8 +5,7 @@ import App from './App';
 import ChatWindow from './ChatWindow';
 
 export default function MainRouter() {
-  // Use Vite's BASE_URL for correct routing on GitHub Pages
-  const base = import.meta.env.BASE_URL || '/';
+  const base = import.meta.env.BASE_URL || '/'; // Use Vite's BASE_URL for correct routing on GitHub Pages
   return (
     <PeerProvider>
       <BrowserRouter basename={base}>
