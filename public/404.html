@@ -2,12 +2,14 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>404 Not Found</title>
+    <title>Redirecting...</title>
   </head>
   <body>
     <script>
-      // Redirect to '/'
-      window.location.replace('/');
+      var currentPath = window.location.pathname;
+      var base = currentPath.lastIndexOf("/404.html") !== -1 ? currentPath.substring(0, index) : "";
+      var path = currentPath.substring(base.length + "/404.html".length);
+      window.location.replace(base + "/index.html");
     </script>
   </body>
 </html>
