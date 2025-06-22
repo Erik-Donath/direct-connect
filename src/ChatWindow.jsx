@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePeerContext } from './PeerContext';
+import CentralPanelLayout from "./CentralPanelLayout";
 import './ChatWindow.css';
 
 function ChatWindow() {
@@ -71,59 +72,48 @@ function ChatWindow() {
   };
 
   return (
-    <div className="chatwindow-root">
-      <div className="chatwindow-panel">
-        <h2>Direct Chat</h2>
-        <div className="chatwindow-info">
-          <span>Connection type: <b>{isHost ? 'Host' : 'Client'}</b></span>
-          <span>Host ID: <b>{hostId}</b></span>
-          <span>Status: <b>{disconnected ? 'Disconnected' : connection ? 'Active' : isHost ? 'Waiting for connection...' : 'Connecting...'}</b></span>
-        </div>
-        <div className="chatwindow-messages">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`chatwindow-message ${msg.sender === 'You' ? 'self' : 'peer'}`}>
-              <span>{msg.text}</span>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-        <div className="chatwindow-input-row">
-          <input
-            className="chatwindow-input"
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={disconnected ? 'Connection closed' : 'Type your message...'}
-            disabled={!connection || disconnected}
-            onKeyDown={e => e.key === 'Enter' && sendMessage()}
-          />
-          <button
-            className="chatwindow-send"
-            onClick={sendMessage}
-            disabled={!connection || !input.trim() || disconnected}
-          >
-            Send
-          </button>
-        </div>
-        {disconnected && (
-          <button
-            className="chatwindow-send"
-            style={{ marginTop: 16 }}
-            onClick={() => navigate('/')}
-          >
-            Back to Start
-          </button>
-        )}
+    <CentralPanelLayout title="Direct Chat">
+      <div className="chatwindow-info">
+        <span>Connection type: <b>{isHost ? 'Host' : 'Client'}</b></span>
+        <span>Host ID: <b>{hostId}</b></span>
+        <span>Status: <b>{disconnected ? 'Disconnected' : connection ? 'Active' : isHost ? 'Waiting for connection...' : 'Connecting...'}</b></span>
       </div>
-      <div className="footer-meta">
-        <div className="copyright-notice">
-          © 2025 Erik Donath
-        </div>
-        <a className="github-link" href="https://github.com/Erik-Donath/direct-connect" target="_blank" rel="noopener noreferrer">
-          View on GitHub
-        </a>
+      <div className="chatwindow-messages">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`chatwindow-message ${msg.sender === 'You' ? 'self' : 'peer'}`}>
+            <span>{msg.text}</span>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
-    </div>
+      <div className="chatwindow-input-row">
+        <input
+          className="chatwindow-input"
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder={disconnected ? 'Connection closed' : 'Type your message...'}
+          disabled={!connection || disconnected}
+          onKeyDown={e => e.key === 'Enter' && sendMessage()}
+        />
+        <button
+          className="chatwindow-send"
+          onClick={sendMessage}
+          disabled={!connection || !input.trim() || disconnected}
+        >
+          Send
+        </button>
+      </div>
+      {disconnected && (
+        <button
+          className="chatwindow-send"
+          style={{ marginTop: 16 }}
+          onClick={() => navigate('/')}
+        >
+          Back to Start
+        </button>
+      )}
+    </CentralPanelLayout>
   );
 }
 

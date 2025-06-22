@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Peer } from 'peerjs';
 import { usePeerContext } from './PeerContext';
+import CentralPanelLayout from "./CentralPanelLayout";
 import './App.css';
 
 function App() {
@@ -67,55 +68,44 @@ function App() {
   };
 
   return (
-    <div className="app-root">
-      <div className="app-panel">
-        <h2 className="app-title">Direct Connect</h2>
-        <div className="app-flex">
-          {/* Left side: Connect as Client */}
-          <div className="app-side left">
-            <input
-              type="text"
-              value={clientId}
-              onChange={e => setClientId(e.target.value)}
-              placeholder="Enter Host ID"
-              className="app-input"
-              disabled={connecting}
-            />
-            <button
-              onClick={handleConnect}
-              className="app-button"
-              disabled={connecting || !clientId}
-            >
-              {connecting ? 'Connecting...' : 'Connect'}
-            </button>
-            {error && (
-              <div style={{ color: '#d63031', marginTop: 12, textAlign: 'center', minHeight: 24 }}>
-                {error}
-              </div>
-            )}
-          </div>
-          {/* Right side: Host */}
-          <div className="app-side right">
-            <div className="app-id-label">Your Host ID:</div>
-            <div className="app-id-value">{hostId || 'Press Host to generate'}</div>
-            <button
-              onClick={handleHost}
-              className="app-button host"
-            >
-              Host / Create
-            </button>
-          </div>
+    <CentralPanelLayout title="Direct Connect">
+      <div className="app-flex">
+        {/* Left side: Connect as Client */}
+        <div className="app-side left">
+          <input
+            type="text"
+            value={clientId}
+            onChange={e => setClientId(e.target.value)}
+            placeholder="Enter Host ID"
+            className="app-input"
+            disabled={connecting}
+          />
+          <button
+            onClick={handleConnect}
+            className="app-button"
+            disabled={connecting || !clientId}
+          >
+            {connecting ? 'Connecting...' : 'Connect'}
+          </button>
+          {error && (
+            <div style={{ color: '#d63031', marginTop: 12, textAlign: 'center', minHeight: 24 }}>
+              {error}
+            </div>
+          )}
+        </div>
+        {/* Right side: Host */}
+        <div className="app-side right">
+          <div className="app-id-label">Your Host ID:</div>
+          <div className="app-id-value">{hostId || 'Press Host to generate'}</div>
+          <button
+            onClick={handleHost}
+            className="app-button host"
+          >
+            Host / Create
+          </button>
         </div>
       </div>
-      <div className="footer-meta">
-        <div className="copyright-notice">
-          © 2025 Erik Donath
-        </div>
-        <a className="github-link" href="https://github.com/Erik-Donath/direct-connect" target="_blank" rel="noopener noreferrer">
-          View on GitHub
-        </a>
-      </div>
-    </div>
+    </CentralPanelLayout>
   );
 }
 
