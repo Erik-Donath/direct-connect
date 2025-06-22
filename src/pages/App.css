@@ -117,3 +117,30 @@
 }
 
 /* Footer-spezifische Styles sind jetzt in CentralPanelLayout.css ausgelagert */
+
+@media (max-width: 600px) {
+  .app-root {
+    padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .app-panel {
+    min-width: unset;
+    max-width: 100vw;
+    width: 100vw;
+    border-radius: 0;
+    padding: 24px 8px;
+    box-shadow: none;
+  }
+  .app-title {
+    font-size: 1.3rem;
+    margin-bottom: 18px;
+  }
+  .app-flex {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .app-side {
+    align-items: stretch;
+  }
+}
