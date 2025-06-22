@@ -3,11 +3,12 @@ import { Outlet } from "react-router-dom";
 import "./CentralPanelLayout.css";
 
 export default function CentralPanelLayout({ title }) {
+  const base = import.meta.env.BASE_URL || "/";
   return (
     <div className="app-root">
       <div className="app-panel">
         <h1 className="app-title">
-          <img src="/icon.svg" alt="App Icon" className="app-title-icon" />
+          <img src={`${base}icon.svg`} alt="App Icon" className="app-title-icon" />
           {title}
         </h1>
         <Outlet />
