@@ -22,7 +22,7 @@ Start the app locally or deploy it to any static hosting platform. Share the gen
 
 1. **Clone the repository**
    ```bash
-   git clone <REPO-URL>
+   git clone https://github.com/Erik-Donath/direct-connect
    cd direct-connect
    ```
 2. **Install dependencies**
