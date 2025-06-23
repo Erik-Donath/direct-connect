@@ -15,14 +15,12 @@ export default function ChatWindow() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    console.debug('[ChatWindow] useEffect: Protokoll/Navigate', protocol);
     if (!protocol || !protocol.conn) {
       navigate('/', { replace: true });
     }
   }, [protocol, navigate]);
 
   useEffect(() => {
-    console.debug('[ChatWindow] useEffect: Protokoll-Objekt', protocol);
     if (!protocol || !protocol.conn) return;
     if (protocol.conn.open) {
       setIsOpen(true);
@@ -34,7 +32,6 @@ export default function ChatWindow() {
   }, [protocol]);
 
   useEffect(() => {
-    console.debug(`[ChatWindow] useEffect: Protokoll/isOpen=${isOpen}`);
     if (!protocol || !isOpen) return;
     const onMsg = (text, timestamp) => {
       setMessages(msgs => [...msgs, { 
@@ -62,7 +59,6 @@ export default function ChatWindow() {
   }, [messages]);
 
   const sendMessage = async () => {
-    console.debug(`[ChatWindow] Sende Nachricht: '${input}'`);
     if (!input.trim() || !protocol || !isOpen) return;
     const timestamp = Date.now();
     await protocol.sendMessage(input);

@@ -5,7 +5,6 @@ import HostSetup from './pages/HostSetup';
 import MainLayout from './components/MainLayout';
 
 export default function MainRouter() {
-  console.debug('MainRouter: Render');
   const base = import.meta.env.BASE_URL || '/';
   return (
     <BrowserRouter basename={base}>

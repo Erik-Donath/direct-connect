@@ -5,7 +5,6 @@ import { useProtocolContext } from '../protocolContextUtils.js';
 import './App.css';
 
 export default function App() {
-  // Debug statement removed: Logging rendering in React components is not useful.
   const [hostId, setHostId] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
@@ -13,7 +12,6 @@ export default function App() {
   const { setNewProtocol, destroyProtocol } = useProtocolContext();
 
   useEffect(() => {
-    console.debug('[App] useEffect: Initialisiere Komponente, prüfe URL-Parameter');
     const params = new URLSearchParams(window.location.search);
     const hostIdParam = params.get('host-id');
     if (hostIdParam) {
@@ -24,21 +22,18 @@ export default function App() {
   }, []);
 
   const handleHost = () => {
-    console.debug('[App] handleHost: Navigiere zu /host');
     navigate('/host');
   };
 
   const handleConnect = (idOverride) => {
-    console.debug(`[App] handleConnect: Versuche Verbindung zu HostId=${idOverride || hostId}`);
     setError('');
     setConnecting(true);
     destroyProtocol();
     Protocol.connect(idOverride || hostId).then(proto => {
-      console.debug('[App] Protocol.connect erfolgreich:', proto);
       setNewProtocol(proto);
       navigate('/chat');
     }).catch(err => {
-      console.error('[App] Protocol.connect Fehler:', err);
+      console.error('[App] Protocol.connect error:', err);
       setError('Connection failed: ' + err.message);
       setConnecting(false);
     });

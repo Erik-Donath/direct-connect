@@ -103,22 +103,18 @@ const PROTOCOL_METHODS = {
 
 // Function to create shared peer instance
 function createSharedPair() {
-  console.debug('[Protocol] createSharedPair() called');
   return new Promise((resolve, reject) => {
     if (shared_pair) {
-      console.debug('[Protocol] shared_pair already exists, reusing');
       resolve(shared_pair);
       return;
     }
     
     const peer = new Peer();
     peer.on('open', () => {
-      console.debug('[Protocol] Shared peer opened');
       shared_pair = peer;
       resolve(peer);
     });
     peer.on('error', (err) => {
-      console.debug('[Protocol] Error opening shared peer:', err);
       shared_pair = null;
       reject(err);
     });
@@ -127,7 +123,6 @@ function createSharedPair() {
 
 class Protocol {
   constructor(peer) {
-    console.debug('[Protocol] Constructor called with peer:', peer);
     this.peer = peer;
     this.conn = null;
 
@@ -155,20 +150,16 @@ class Protocol {
 
   async _generateKeys() {
     try {
-      console.debug('[Protocol] Generating E2EE keys...');
       this.ownKeys = await E2EE.getKeys();
-      console.debug('[Protocol] E2EE keys generated successfully');
     } catch (error) {
       console.error('[Protocol] Failed to generate E2EE keys:', error);
     }
   }
 
   static host() {
-    console.debug('[Protocol] host() called');
     return new Promise((resolve, reject) => {
       // Both client and host need a Peer object, so both host and connect functions are the same at the beginning
       createSharedPair().then(peer => {
-        console.debug('[Protocol] Host using shared peer');
         const proto = new Protocol(peer);
         proto._isHost = true;
         
@@ -176,7 +167,6 @@ class Protocol {
         peer.on('connection', conn => {
           // Only one client can connect - check if we already have a connection
           if (proto.conn !== null) {
-            console.debug('[Protocol] Connection rejected – already have a client connected');
             conn.close();
             return;
           }
@@ -189,11 +179,9 @@ class Protocol {
   }
 
   static connect(hostId) {
-    console.debug('[Protocol] connect() called with hostId:', hostId);
     return new Promise((resolve, reject) => {
       // Both client and host need a Peer object, so both host and connect functions are the same at the beginning
       createSharedPair().then(peer => {
-        console.debug('[Protocol] Client using shared peer');
         const proto = new Protocol(peer);
         proto._isHost = false;
         

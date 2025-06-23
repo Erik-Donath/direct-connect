@@ -15,19 +15,15 @@ export default function HostSetup() {
   const [initializing, setInitializing] = useState(false);
 
   useEffect(() => {
-    console.debug('[HostSetup] useEffect: Protokoll-Status', protocol);
-    
     // Check if a pair is already established or if a new one has to be created
     if (!protocol) {
-      console.debug('[HostSetup] Kein Protokoll vorhanden, erstelle neuen Host');
       setInitializing(true);
       setError('');
       Protocol.host().then(proto => {
-        console.debug('[HostSetup] Protocol.host erfolgreich:', proto);
         setNewProtocol(proto);
         setInitializing(false);
       }).catch(err => {
-        console.error('[HostSetup] Protocol.host Fehler:', err);
+        console.error('[HostSetup] Protocol.host error:', err);
         setError('Failed to initialize host: ' + err.message);
         setInitializing(false);
       });
@@ -36,14 +32,11 @@ export default function HostSetup() {
 
     // Protocol exists, check if it's properly set up
     if (!protocol.peer) {
-      console.debug('[HostSetup] Protokoll vorhanden, Peer aber nicht bereit');
       return;
     }
 
-    console.debug('[HostSetup] Existierendes Protokoll-Paar wird verwendet');
     setPeerId(protocol.peer.id || '');
     protocol.onConnect(() => {
-      console.debug('[HostSetup] onConnect ausgelöst, weiter zu Chat');
       setWaiting(false);
       navigate('/chat', { replace: true });
     });
