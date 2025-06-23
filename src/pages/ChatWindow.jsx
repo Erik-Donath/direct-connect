@@ -1,70 +1,67 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePeerContext } from '../PeerContext';
-import { pParse, pMessage } from '../Protocol';
+import { useProtocolContext } from '../ProtocolContext';
 import './ChatWindow.css';
 
-function ChatWindow() {
+export default function ChatWindow() {
+  console.debug('ChatWindow: Render');
   const navigate = useNavigate();
-  const { connection } = usePeerContext();
+  const { protocol } = useProtocolContext();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [disconnected, setDisconnected] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Redirects to the start page if there is no active connection
   useEffect(() => {
-    if (!connection) {
+    console.debug('ChatWindow: useEffect (protocol/navigate)', protocol);
+    if (!protocol || !protocol.conn) {
       navigate('/', { replace: true });
     }
-  }, [connection, navigate]);
+  }, [protocol, navigate]);
 
-  // Only renders the chat once the connection is open
   useEffect(() => {
-    if (!connection) return;
-    if (connection.open) {
+    console.debug('ChatWindow: useEffect (protocol)', protocol);
+    if (!protocol || !protocol.conn) return;
+    if (protocol.conn.open) {
       setIsOpen(true);
       return;
     }
     const handleOpen = () => setIsOpen(true);
-    connection.on('open', handleOpen);
-    return () => connection.off('open', handleOpen);
-  }, [connection]);
+    protocol.conn.on('open', handleOpen);
+    return () => protocol.conn.off('open', handleOpen);
+  }, [protocol]);
 
-  // Listens for incoming messages when the connection is open
   useEffect(() => {
-    if (!connection || !isOpen) return;
-    const onData = (data) => {
-      const text = pParse(data) || "Failed to parse message";
-
-      setMessages((msgs) => [...msgs, { sender: 'Peer', text: text }]);
+    console.debug('ChatWindow: useEffect (protocol/isOpen)', protocol, isOpen);
+    if (!protocol || !isOpen) return;
+    const onMsg = (text) => {
+      setMessages(msgs => [...msgs, { sender: 'Peer', text }]);
     };
-    connection.on('data', onData);
-    return () => connection.off('data', onData);
-  }, [connection, isOpen]);
+    protocol.onMessage(onMsg);
+    return () => protocol.onMessage(null);
+  }, [protocol, isOpen]);
 
-  // Sets the disconnected state if the connection is closed
   useEffect(() => {
-    if (!connection) return;
+    if (!protocol || !protocol.conn) return;
     const handleClose = () => setDisconnected(true);
-    connection.on('close', handleClose);
-    return () => connection.off('close', handleClose);
-  }, [connection]);
+    protocol.conn.on('close', handleClose);
+    return () => protocol.conn.off('close', handleClose);
+  }, [protocol]);
 
-  // Scrolls to the latest message whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = () => {
-    if (!input.trim() || !connection || !isOpen) return;
-    connection.send(pMessage(input));
-    setMessages((msgs) => [...msgs, { sender: 'You', text: input }]);
+    console.debug('ChatWindow: sendMessage', input);
+    if (!input.trim() || !protocol || !isOpen) return;
+    protocol.sendMessage(input);
+    setMessages(msgs => [...msgs, { sender: 'You', text: input }]);
     setInput('');
   };
 
-  if (!connection || !isOpen) return null;
+  if (!protocol || !isOpen) return null;
 
   return (
     <>
@@ -83,13 +80,13 @@ function ChatWindow() {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={disconnected ? 'Connection closed' : 'Type your message...'}
-          disabled={!connection || disconnected || !isOpen}
+          disabled={!protocol || disconnected || !isOpen}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
         />
         <button
           className="chatwindow-send"
           onClick={sendMessage}
-          disabled={!connection || !input.trim() || disconnected || !isOpen}
+          disabled={!protocol || !input.trim() || disconnected || !isOpen}
         >
           Send
         </button>
@@ -108,5 +105,3 @@ function ChatWindow() {
     </>
   );
 }
-
-export default ChatWindow;

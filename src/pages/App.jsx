@@ -1,86 +1,66 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Peer } from 'peerjs';
-import { usePeerContext } from '../PeerContext';
+import Protocol from '../Protocol';
+import { useProtocolContext } from '../ProtocolContext';
 import './App.css';
 
-function App() {
-  const [clientId, setClientId] = useState('');
+export default function App() {
+  console.debug('App: Render');
+  const [hostId, setHostId] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { peer, setPeer, setConnection, peerRef } = usePeerContext();
+  const { setNewProtocol, destroyProtocol } = useProtocolContext();
 
-  // Automatically connects if a host link with a host-id query parameter is present
   useEffect(() => {
+    console.debug('App: useEffect (componentDidMount)');
     const params = new URLSearchParams(window.location.search);
     const hostIdParam = params.get('host-id');
     if (hostIdParam) {
-      setClientId(hostIdParam);
+      setHostId(hostIdParam);
       setTimeout(() => handleConnect(hostIdParam), 0);
     }
     // eslint-disable-next-line
   }, []);
 
   const handleHost = () => {
+    console.debug('App: handleHost aufgerufen');
     setError('');
     setConnecting(false);
-    if (peerRef.current) {
-      try { peerRef.current.destroy(); } catch {}
-    }
-    const newPeer = new Peer();
-    setPeer(newPeer);
-    newPeer.on('open', () => {
+    destroyProtocol();
+    Protocol.host().then(proto => {
+      console.debug('App: Protocol.host() erfolgreich', proto);
+      setNewProtocol(proto);
       navigate('/host');
-    });
-    newPeer.on('error', (err) => {
+    }).catch(err => {
+      console.debug('App: Protocol.host() Fehler', err);
       setError('PeerJS error: ' + err.message);
     });
   };
 
   const handleConnect = (idOverride) => {
+    console.debug('App: handleConnect aufgerufen', idOverride || hostId);
     setError('');
     setConnecting(true);
-    if (peerRef.current) {
-      try { peerRef.current.destroy(); } catch {}
-    }
-    const newPeer = new Peer();
-    setPeer(newPeer);
-    newPeer.on('open', () => {
-      const targetId = idOverride || clientId;
-      const conn = newPeer.connect(targetId);
-      conn.on('open', () => {
-        setConnection(conn);
-        navigate('/chat');
-      });
-      conn.on('error', () => {
-        setError('Connection failed! Please check the ID and try again.');
-        setConnecting(false);
-        newPeer.destroy();
-      });
-      setTimeout(() => {
-        if (!conn.open) {
-          setError('Peer not found! Please check the ID.');
-          setConnecting(false);
-          newPeer.destroy();
-        }
-      }, 4000);
-    });
-    newPeer.on('error', () => {
-      setError('PeerJS error.');
+    destroyProtocol();
+    Protocol.connect(idOverride || hostId).then(proto => {
+      console.debug('App: Protocol.connect() erfolgreich', proto);
+      setNewProtocol(proto);
+      navigate('/chat');
+    }).catch(err => {
+      console.debug('App: Protocol.connect() Fehler', err);
+      setError('Verbindung fehlgeschlagen: ' + err.message);
       setConnecting(false);
-      newPeer.destroy();
     });
   };
 
   return (
     <div className="app-flex">
-      {/* Client: Connect section */}
       <div className="app-side left">
         <input
           type="text"
-          value={clientId}
-          onChange={e => setClientId(e.target.value)}
+          value={hostId}
+          onChange={e => setHostId(e.target.value)}
           placeholder="Enter Host ID"
           className="app-input"
           disabled={connecting}
@@ -88,7 +68,7 @@ function App() {
         <button
           onClick={() => handleConnect()}
           className="app-button"
-          disabled={connecting || !clientId}
+          disabled={connecting || !hostId}
         >
           {connecting ? 'Connecting...' : 'Connect'}
         </button>
@@ -98,7 +78,6 @@ function App() {
           </div>
         )}
       </div>
-      {/* Host: Setup section */}
       <div className="app-side right">
         <button
           onClick={handleHost}
@@ -110,5 +89,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

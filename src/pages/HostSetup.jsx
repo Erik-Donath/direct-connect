@@ -1,41 +1,27 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePeerContext } from '../PeerContext';
-import Peer from 'peerjs';
+import { useProtocolContext } from '../ProtocolContext';
 import './HostSetup.css';
 
-function HostSetup() {
+export default function HostSetup() {
+  console.debug('HostSetup: Render');
   const navigate = useNavigate();
-  const { peerRef, setConnection } = usePeerContext();
+  const { protocol } = useProtocolContext();
+  const [peerId, setPeerId] = useState('');
   const [copied, setCopied] = useState(false);
   const [waiting, setWaiting] = useState(true);
-  const [peerId, setPeerId] = useState(null);
 
   useEffect(() => {
-    const peer = peerRef.current;
-    if (!peer) return;
-    
-    // Navigates to the chat page when a connection is established
-    const onConnection = (conn) => {
-      setConnection(conn);
+    console.debug('HostSetup: useEffect, protocol:', protocol);
+    if (!protocol || !protocol.peer) return;
+    setPeerId(protocol.peer.id || '');
+    protocol.onConnect(() => {
+      console.debug('HostSetup: onConnect ausgelöst');
       setWaiting(false);
       navigate('/chat', { replace: true });
-    };
-    peer.on('connection', onConnection);
-    return () => peer.off('connection', onConnection);
-  }, [peerRef, setConnection, navigate]);
-
-  useEffect(() => {
-    if (!peerRef.current) {
-      const peer = new Peer();
-      peerRef.current = peer;
-      peer.on('open', (id) => {
-        setPeerId(id);
-      });
-    } else {
-      setPeerId(peerRef.current.id);
-    }
-  }, [peerRef]);
+    });
+    // eslint-disable-next-line
+  }, [protocol, navigate]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   const chatLink = peerId ? `${baseUrl}?host-id=${peerId}` : '';
@@ -66,5 +52,3 @@ function HostSetup() {
     </div>
   );
 }
-
-export default HostSetup;
