@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePeerContext } from '../PeerContext';
+import { pParse, pMessage } from '../Protocol';
 import './ChatWindow.css';
 
 function ChatWindow() {
@@ -35,7 +36,9 @@ function ChatWindow() {
   useEffect(() => {
     if (!connection || !isOpen) return;
     const onData = (data) => {
-      setMessages((msgs) => [...msgs, { sender: 'Peer', text: data }]);
+      const text = pParse(data) || "Failed to parse message";
+
+      setMessages((msgs) => [...msgs, { sender: 'Peer', text: text }]);
     };
     connection.on('data', onData);
     return () => connection.off('data', onData);
@@ -56,7 +59,7 @@ function ChatWindow() {
 
   const sendMessage = () => {
     if (!input.trim() || !connection || !isOpen) return;
-    connection.send(input);
+    connection.send(pMessage(input));
     setMessages((msgs) => [...msgs, { sender: 'You', text: input }]);
     setInput('');
   };
