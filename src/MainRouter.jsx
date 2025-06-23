@@ -7,8 +7,9 @@ import MainLayout from './components/MainLayout';
 
 export default function MainRouter() {
   console.debug('MainRouter: Render');
+  const base = import.meta.env.BASE_URL || '/';
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={base}>
       <Routes>
         <Route element={<MainLayout title="Direct Connect" />}> 
           <Route path="/" element={<App />} />
