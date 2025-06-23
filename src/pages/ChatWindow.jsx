@@ -51,7 +51,10 @@ export default function ChatWindow() {
     if (!protocol || !protocol.conn) return;
     const handleClose = () => setDisconnected(true);
     protocol.conn.on('close', handleClose);
-    return () => protocol.conn.off('close', handleClose);
+    return () => {
+      if(protocol && protocol.conn)
+        protocol.conn.off('close', handleClose);
+    }
   }, [protocol]);
 
   useEffect(() => {

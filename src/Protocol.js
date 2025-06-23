@@ -35,7 +35,11 @@ const PROTOCOL_METHODS = {
     handler: (protocol, params) => {
       console.debug('Protocol: handshake handler', params);
       if (params.version === PROTOCOL_VERSION) {
-        protocol.sendHandshake();
+        // Only clients should respond to handshake with their own handshake
+        // Hosts should not send handshake back when they receive one
+        if (!protocol._isHost && !protocol._handshakeDone) {
+          protocol.sendHandshake();
+        }
         protocol._handshakeDone = true;
         if (protocol.callbacks.onConnect) {
           protocol.callbacks.onConnect();
@@ -309,15 +313,15 @@ class Protocol {
   _startPingSystem() {
     console.debug('Protocol: _startPingSystem');
     this._lastPingReceived = Date.now();
-    
-    // Ping should only be sent once every second
+
+    // Clear any existing ping system first
+    this._clearPingSystem();
+
     this._pingInterval = setInterval(() => {
       if (this.conn && this.conn.open) {
         this.sendPing();
       }
-    }, 1000);
-    
-    this._pingTimeout = setInterval(() => {
+
       if (this._lastPingReceived && Date.now() - this._lastPingReceived > 3000) {
         console.debug('Protocol: Ping timeout, closing connection');
         this._forceClose();
@@ -329,7 +333,12 @@ class Protocol {
     console.debug('Protocol: _forceClose');
     this._clearPingSystem();
     if (this.conn) {
-      try { this.conn.close(); } catch {}
+      try { 
+        this.conn.close(); 
+      } catch (error) {
+        // Ignore connection close errors
+        console.debug('Protocol: Error closing connection', error);
+      }
     }
     // Don't destroy shared peer, just clear connection
     this.conn = null;
@@ -350,7 +359,14 @@ class Protocol {
   destroy() {
     console.debug('Protocol: destroy');
     this._clearPingSystem();
-    if (this.conn) try { this.conn.close(); } catch {}
+    if (this.conn) {
+      try { 
+        this.conn.close(); 
+      } catch (error) {
+        // Ignore connection close errors
+        console.debug('Protocol: Error closing connection during destroy', error);
+      }
+    }
     // Don't destroy shared peer, just clear reference
     this.conn = null;
     this.peer = null;
