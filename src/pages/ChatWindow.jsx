@@ -5,7 +5,7 @@ import Message from '../components/Message';
 import './ChatWindow.css';
 
 export default function ChatWindow() {
-  console.debug('ChatWindow: Render');
+  // Debug statement removed: Logging rendering in React components is not useful.
   const navigate = useNavigate();
   const { protocol } = useProtocolContext();
   const [messages, setMessages] = useState([]);
@@ -15,14 +15,14 @@ export default function ChatWindow() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    console.debug('ChatWindow: useEffect (protocol/navigate)', protocol);
+    console.debug('[ChatWindow] useEffect: Protokoll/Navigate', protocol);
     if (!protocol || !protocol.conn) {
       navigate('/', { replace: true });
     }
   }, [protocol, navigate]);
 
   useEffect(() => {
-    console.debug('ChatWindow: useEffect (protocol)', protocol);
+    console.debug('[ChatWindow] useEffect: Protokoll-Objekt', protocol);
     if (!protocol || !protocol.conn) return;
     if (protocol.conn.open) {
       setIsOpen(true);
@@ -34,7 +34,7 @@ export default function ChatWindow() {
   }, [protocol]);
 
   useEffect(() => {
-    console.debug('ChatWindow: useEffect (protocol/isOpen)', protocol, isOpen);
+    console.debug(`[ChatWindow] useEffect: Protokoll/isOpen=${isOpen}`);
     if (!protocol || !isOpen) return;
     const onMsg = (text, timestamp) => {
       setMessages(msgs => [...msgs, { 
@@ -62,7 +62,7 @@ export default function ChatWindow() {
   }, [messages]);
 
   const sendMessage = async () => {
-    console.debug('ChatWindow: sendMessage', input);
+    console.debug(`[ChatWindow] Sende Nachricht: '${input}'`);
     if (!input.trim() || !protocol || !isOpen) return;
     const timestamp = Date.now();
     await protocol.sendMessage(input);

@@ -11,7 +11,7 @@ const PROTOCOL_METHODS = {
   disconnect: {
     params: ['reason'],
     handler: (protocol, params) => {
-      console.debug('Protocol: disconnect handler', params);
+      console.debug('[Protocol] Disconnect handler called with params:', params);
       if (protocol.callbacks.onDisconnect) {
         protocol.callbacks.onDisconnect(params.reason);
       }
@@ -24,20 +24,20 @@ const PROTOCOL_METHODS = {
   message: {
     params: ['text', 'timestamp'],
     handler: async (protocol, params) => {
-      console.debug('Protocol: message handler', params);
+      console.debug('[Protocol] Message handler called with params:', params);
       
       // Decrypt the message if it's encrypted and we have the necessary keys
       let decryptedText = params.text;
       if (protocol.ownKeys && protocol.ownKeys.private_key && typeof params.text === 'object') {
         try {
-          console.debug('Protocol: Decrypting received message');
+          console.debug('[Protocol] Decrypting received message...');
           decryptedText = await E2EE.decryptForPlaintext({
             encrypted_text: params.text,
             private_key: protocol.ownKeys.private_key
           });
-          console.debug('Protocol: Message decrypted successfully');
+          console.debug('[Protocol] Message decrypted successfully');
         } catch (error) {
-          console.error('Protocol: Failed to decrypt message', error);
+          console.error('[Protocol] Failed to decrypt message:', error);
           decryptedText = '[Decryption failed]';
         }
       }
@@ -51,11 +51,11 @@ const PROTOCOL_METHODS = {
   handshake: {
     params: ['version', 'public_key'],
     handler: (protocol, params) => {
-      console.debug('Protocol: handshake handler', params);
+      console.debug('[Protocol] Handshake handler called with params:', params);
       if (params.version === PROTOCOL_VERSION) {
         // Store peer's public key for E2EE
         protocol.peerPublicKey = params.public_key;
-        console.debug('Protocol: Stored peer public key for E2EE');
+        console.debug('[Protocol] Peer public key for E2EE stored');
         
         // Only clients should respond to handshake with their own handshake
         // Hosts should not send handshake back when they receive one
@@ -89,7 +89,7 @@ const PROTOCOL_METHODS = {
   ping: {
     params: ['timestamp'],
     handler: (protocol, params) => {
-      console.debug('Protocol: ping handler', params);
+      console.debug('[Protocol] Ping handler called with params:', params);
       protocol._lastPingReceived = Date.now();
       if (protocol.callbacks.onPing) {
         protocol.callbacks.onPing(params.timestamp);
@@ -100,22 +100,22 @@ const PROTOCOL_METHODS = {
 
 // Function to create shared peer instance
 function createSharedPair() {
-  console.debug('Protocol: createSharedPair() called');
+  console.debug('[Protocol] createSharedPair() called');
   return new Promise((resolve, reject) => {
     if (shared_pair) {
-      console.debug('Protocol: shared_pair already exists, reusing');
+      console.debug('[Protocol] shared_pair already exists, reusing');
       resolve(shared_pair);
       return;
     }
     
     const peer = new Peer();
     peer.on('open', () => {
-      console.debug('Protocol: Shared peer opened');
+      console.debug('[Protocol] Shared peer opened');
       shared_pair = peer;
       resolve(peer);
     });
     peer.on('error', (err) => {
-      console.debug('Protocol: Shared peer error', err);
+      console.debug('[Protocol] Error opening shared peer:', err);
       shared_pair = null;
       reject(err);
     });
@@ -124,7 +124,7 @@ function createSharedPair() {
 
 class Protocol {
   constructor(peer) {
-    console.debug('Protocol: Constructor', peer);
+    console.debug('[Protocol] Constructor called with peer:', peer);
     this.peer = peer;
     this.conn = null;
 
@@ -152,20 +152,20 @@ class Protocol {
 
   async _generateKeys() {
     try {
-      console.debug('Protocol: Generating E2EE keys');
+      console.debug('[Protocol] Generating E2EE keys...');
       this.ownKeys = await E2EE.getKeys();
-      console.debug('Protocol: E2EE keys generated successfully');
+      console.debug('[Protocol] E2EE keys generated successfully');
     } catch (error) {
-      console.error('Protocol: Failed to generate E2EE keys', error);
+      console.error('[Protocol] Failed to generate E2EE keys:', error);
     }
   }
 
   static host() {
-    console.debug('Protocol: host() called');
+    console.debug('[Protocol] host() called');
     return new Promise((resolve, reject) => {
       // Both client and host need a Peer object, so both host and connect functions are the same at the beginning
       createSharedPair().then(peer => {
-        console.debug('Protocol: Host using shared peer');
+        console.debug('[Protocol] Host using shared peer');
         const proto = new Protocol(peer);
         proto._isHost = true;
         
@@ -173,7 +173,7 @@ class Protocol {
         peer.on('connection', conn => {
           // Only one client can connect - check if we already have a connection
           if (proto.conn !== null) {
-            console.debug('Protocol: Rejecting connection - already have a client connected');
+            console.debug('[Protocol] Connection rejected – already have a client connected');
             conn.close();
             return;
           }
@@ -186,11 +186,11 @@ class Protocol {
   }
 
   static connect(hostId) {
-    console.debug('Protocol: connect() called', hostId);
+    console.debug('[Protocol] connect() called with hostId:', hostId);
     return new Promise((resolve, reject) => {
       // Both client and host need a Peer object, so both host and connect functions are the same at the beginning
       createSharedPair().then(peer => {
-        console.debug('Protocol: Client using shared peer');
+        console.debug('[Protocol] Client using shared peer');
         const proto = new Protocol(peer);
         proto._isHost = false;
         
@@ -225,25 +225,25 @@ class Protocol {
 
   // Send methods for each protocol method
   sendDisconnect(reason = 'user-disconnect') {
-    console.debug('Protocol: sendDisconnect', reason);
+    console.debug('[Protocol] sendDisconnect called with reason:', reason);
     this._send({ type: 'disconnect', reason });
   }
 
   async sendMessage(text, timestamp = Date.now()) {
-    console.debug('Protocol: sendMessage', text, timestamp);
+    console.debug('[Protocol] sendMessage called with text and timestamp:', text, timestamp);
     if (this.conn && this.conn.open && this._handshakeDone) {
       // Encrypt the message if we have the peer's public key
       let messageText = text;
       if (this.peerPublicKey) {
         try {
-          console.debug('Protocol: Encrypting outgoing message');
+          console.debug('[Protocol] Encrypting outgoing message...');
           messageText = await E2EE.encryptPlaintext({
             public_key: this.peerPublicKey,
             plain_text: text
           });
-          console.debug('Protocol: Message encrypted successfully');
+          console.debug('[Protocol] Message encrypted successfully');
         } catch (error) {
-          console.error('Protocol: Failed to encrypt message', error);
+          console.error('[Protocol] Failed to encrypt message:', error);
           // Fall back to sending unencrypted message
           messageText = text;
         }
@@ -254,7 +254,7 @@ class Protocol {
   }
 
   sendHandshake(version = PROTOCOL_VERSION) {
-    console.debug('Protocol: sendHandshake', version);
+    console.debug('[Protocol] sendHandshake called with version:', version);
     if (this.ownKeys && this.ownKeys.public_key) {
       this._send({ 
         type: 'handshake', 
@@ -262,17 +262,17 @@ class Protocol {
         public_key: this.ownKeys.public_key 
       });
     } else {
-      console.warn('Protocol: Cannot send handshake - E2EE keys not ready');
+      console.warn('[Protocol] Cannot send handshake – E2EE keys not ready');
     }
   }
 
   sendPing(timestamp = Date.now()) {
-    console.debug('Protocol: sendPing', timestamp);
+    console.debug('[Protocol] sendPing called with timestamp:', timestamp);
     this._send({ type: 'ping', timestamp });
   }
 
   _handleConnection(conn, resolve, reject = null) {
-    console.debug('Protocol: _handleConnection', conn);
+    console.debug('[Protocol] _handleConnection called with connection:', conn);
     this.conn = conn;
     
     conn.on('data', (data) => {
@@ -280,7 +280,7 @@ class Protocol {
     });
     
     conn.on('open', async () => {
-      console.debug('Protocol: Connection opened');
+      console.debug('[Protocol] Connection opened');
       
       // Wait for keys to be generated before sending handshake
       if (this._isHost) {
@@ -302,12 +302,12 @@ class Protocol {
     });
     
     conn.on('close', () => {
-      console.debug('Protocol: Connection closed');
+      console.debug('[Protocol] Connection closed');
       this.conn = null;
     });
     
     conn.on('error', (err) => {
-      console.debug('Protocol: Connection error', err);
+      console.debug('[Protocol] Connection error:', err);
       this.conn = null;
       if (reject) reject(err);
     });
@@ -325,11 +325,11 @@ class Protocol {
 
   // Central message processing function
   _processMessage(rawData) {
-    console.debug('Protocol: _processMessage', rawData);
+    console.debug('[Protocol] _processMessage called with raw data:', rawData);
     
     const message = this._parseMessage(rawData);
     if (!message) {
-      console.warn('Protocol: Failed to parse message', rawData);
+      console.warn('[Protocol] Failed to parse message:', rawData);
       return;
     }
     
@@ -337,14 +337,14 @@ class Protocol {
     const methodDef = PROTOCOL_METHODS[type];
     
     if (!methodDef) {
-      console.warn('Protocol: Unknown message type', type);
+      console.warn('[Protocol] Unknown message type:', type);
       return;
     }
     
     // Validate required parameters
     const params = this._validateParams(message, methodDef.params);
     if (!params) {
-      console.warn('Protocol: Invalid parameters for', type, message);
+      console.warn('[Protocol] Invalid parameters for', type, message);
       return;
     }
     
@@ -352,7 +352,7 @@ class Protocol {
     try {
       methodDef.handler(this, params);
     } catch (error) {
-      console.error('Protocol: Handler error for', type, error);
+      console.error('[Protocol] Handler error for', type, error);
     }
   }
 
@@ -360,12 +360,12 @@ class Protocol {
     try {
       const obj = typeof rawData === 'object' ? rawData : JSON.parse(rawData);
       if (!obj.type) {
-        console.warn('Protocol: Message missing type field');
+        console.warn('[Protocol] Message missing type field');
         return null;
       }
       return obj;
     } catch (error) {
-      console.warn('Protocol: JSON parse error', error);
+      console.warn('[Protocol] JSON parse error:', error);
       return null;
     }
   }
@@ -375,7 +375,7 @@ class Protocol {
     
     for (const param of requiredParams) {
       if (!(param in message)) {
-        console.warn('Protocol: Missing required parameter', param);
+        console.warn('[Protocol] Missing required parameter:', param);
         return null;
       }
       params[param] = message[param];
@@ -385,14 +385,14 @@ class Protocol {
   }
 
   _send(obj) {
-    console.debug('Protocol: _send', obj);
+    console.debug('[Protocol] _send called with object:', obj);
     if (this.conn && this.conn.open) {
       this.conn.send(JSON.stringify(obj));
     }
   }
 
   _startPingSystem() {
-    console.debug('Protocol: _startPingSystem');
+    console.debug('[Protocol] _startPingSystem called');
     this._lastPingReceived = Date.now();
 
     // Clear any existing ping system first
@@ -404,21 +404,21 @@ class Protocol {
       }
 
       if (this._lastPingReceived && Date.now() - this._lastPingReceived > 3000) {
-        console.debug('Protocol: Ping timeout, closing connection');
+        console.debug('[Protocol] Ping timeout, closing connection');
         this._forceClose();
       }
     }, 1000);
   }
 
   _forceClose() {
-    console.debug('Protocol: _forceClose');
+    console.debug('[Protocol] _forceClose called');
     this._clearPingSystem();
     if (this.conn) {
       try { 
         this.conn.close(); 
       } catch (error) {
         // Ignore connection close errors
-        console.debug('Protocol: Error closing connection', error);
+        console.debug('[Protocol] Error closing connection:', error);
       }
     }
     // Don't destroy shared peer, just clear connection
@@ -426,7 +426,7 @@ class Protocol {
   }
 
   _clearPingSystem() {
-    console.debug('Protocol: _clearPingSystem');
+    console.debug('[Protocol] _clearPingSystem called');
     if (this._pingInterval) {
       clearInterval(this._pingInterval);
       this._pingInterval = null;
@@ -438,14 +438,14 @@ class Protocol {
   }
 
   destroy() {
-    console.debug('Protocol: destroy');
+    console.debug('[Protocol] destroy called');
     this._clearPingSystem();
     if (this.conn) {
       try { 
         this.conn.close(); 
       } catch (error) {
         // Ignore connection close errors
-        console.debug('Protocol: Error closing connection during destroy', error);
+        console.debug('[Protocol] Error closing connection during destroy:', error);
       }
     }
     // Don't destroy shared peer, just clear reference

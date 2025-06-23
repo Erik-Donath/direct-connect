@@ -40,4 +40,5 @@ ProtocolProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
+export { ProtocolProvider };
 export default ProtocolProvider;

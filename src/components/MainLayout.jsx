@@ -3,7 +3,6 @@ import { Outlet } from "react-router-dom";
 import "./MainLayout.css";
 
 export default function MainLayout({ title }) {
-  console.debug('MainLayout: Render', title);
   const base = import.meta.env.BASE_URL || "/";
   return (
     <div className="app-root">
