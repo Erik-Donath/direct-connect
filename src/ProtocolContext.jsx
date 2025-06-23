@@ -1,8 +1,8 @@
-import { createContext, useContext, useRef, useState } from 'react';
+import { ProtocolContext } from './protocolContextUtils';
+import { useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 
-const ProtocolContext = createContext();
-
-export function ProtocolProvider({ children }) {
+function ProtocolProvider({ children }) {
   console.debug('ProtocolProvider: Render');
   const protocolRef = useRef(null);
   const [protocol, setProtocol] = useState(null);
@@ -36,6 +36,8 @@ export function ProtocolProvider({ children }) {
   );
 }
 
-export function useProtocolContext() {
-  return useContext(ProtocolContext);
-}
+ProtocolProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+export default ProtocolProvider;

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProtocolContext } from '../ProtocolContext';
+import { useProtocolContext } from '../protocolContextUtils.js';
 import Protocol from '../Protocol';
 import './HostSetup.css';
 
@@ -47,7 +47,6 @@ export default function HostSetup() {
       setWaiting(false);
       navigate('/chat', { replace: true });
     });
-    // eslint-disable-next-line
   }, [protocol, navigate, setNewProtocol]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');

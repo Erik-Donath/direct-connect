@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import './Message.css';
 
 export default function Message({ text, sender, timestamp }) {
@@ -20,3 +20,12 @@ export default function Message({ text, sender, timestamp }) {
     </div>
   );
 }
+
+Message.propTypes = {
+  text: PropTypes.string.isRequired,
+  sender: PropTypes.string.isRequired,
+  timestamp: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number
+  ]).isRequired,
+};

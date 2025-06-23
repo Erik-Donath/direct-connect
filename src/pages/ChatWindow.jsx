@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProtocolContext } from '../ProtocolContext';
+import { useProtocolContext } from '../protocolContextUtils.js';
 import Message from '../components/Message';
 import './ChatWindow.css';
 

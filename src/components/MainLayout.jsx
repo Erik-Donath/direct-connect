@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from 'prop-types';
 import { Outlet } from "react-router-dom";
 import "./MainLayout.css";
 
@@ -31,3 +31,7 @@ export default function MainLayout({ title }) {
     </div>
   );
 }
+
+MainLayout.propTypes = {
+  title: PropTypes.string.isRequired,
+};
