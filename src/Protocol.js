@@ -1,7 +1,10 @@
 import Peer from 'peerjs';
 import E2EE from '@chatereum/react-e2ee';
 
-const PROTOCOL_VERSION = '1.0.0';
+// Protocol versions:
+// 1.0.0 - Initial version (no encryption, basic message handling)
+// 1.1.0 - Added E2EE support, ping system, and disconnect handling
+const PROTOCOL_VERSION = '1.1.0';
 
 // Shared peer instance that is only created once
 let shared_pair = null;
