@@ -24,32 +24,22 @@ export default function App() {
   }, []);
 
   const handleHost = () => {
-    console.debug('App: handleHost aufgerufen');
-    setError('');
-    setConnecting(false);
-    destroyProtocol();
-    Protocol.host().then(proto => {
-      console.debug('App: Protocol.host() erfolgreich', proto);
-      setNewProtocol(proto);
-      navigate('/host');
-    }).catch(err => {
-      console.debug('App: Protocol.host() Fehler', err);
-      setError('PeerJS error: ' + err.message);
-    });
+    console.debug('App: handleHost called - redirecting to /host');
+    navigate('/host');
   };
 
   const handleConnect = (idOverride) => {
-    console.debug('App: handleConnect aufgerufen', idOverride || hostId);
+    console.debug('App: handleConnect called', idOverride || hostId);
     setError('');
     setConnecting(true);
     destroyProtocol();
     Protocol.connect(idOverride || hostId).then(proto => {
-      console.debug('App: Protocol.connect() erfolgreich', proto);
+      console.debug('App: Protocol.connect() successful', proto);
       setNewProtocol(proto);
       navigate('/chat');
     }).catch(err => {
-      console.debug('App: Protocol.connect() Fehler', err);
-      setError('Verbindung fehlgeschlagen: ' + err.message);
+      console.debug('App: Protocol.connect() error', err);
+      setError('Connection failed: ' + err.message);
       setConnecting(false);
     });
   };

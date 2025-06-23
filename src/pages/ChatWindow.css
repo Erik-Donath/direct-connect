@@ -59,22 +59,6 @@
   gap: 8px;
 }
 
-.chatwindow-message {
-  max-width: 80%;
-  padding: 8px 14px;
-  border-radius: 16px;
-  font-size: 1rem;
-  word-break: break-word;
-  align-self: flex-start;
-  background: #dfe6e9;
-  color: #222;
-}
-
-.chatwindow-message.self {
-  align-self: flex-end;
-  background: #0984e3;
-  color: #fff;
-}
 
 .chatwindow-input-row {
   display: flex;
@@ -187,13 +171,6 @@
     width: 100%;
     box-sizing: border-box;
     padding: 12px 8px;
-  }
-  .chatwindow-message {
-    padding: 10px 16px;
-    font-size: 0.95rem;
-  }
-  .chatwindow-message.self {
-    background: #0984e3;
   }
   .chatwindow-input {
     padding: 8px 12px;

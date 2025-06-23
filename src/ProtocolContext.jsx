@@ -16,7 +16,7 @@ export function ProtocolProvider({ children }) {
 
   const setNewProtocol = (proto) => {
     console.debug('ProtocolProvider: setNewProtocol', proto);
-    // Nur zerstören, wenn ein anderes Protokoll gesetzt wird
+    // Only destroy if a different protocol is being set
     if (protocolRef.current && protocolRef.current !== proto) {
       destroyProtocol();
     }

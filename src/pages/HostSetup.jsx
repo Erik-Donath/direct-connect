@@ -1,30 +1,85 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolContext } from '../ProtocolContext';
+import Protocol from '../Protocol';
 import './HostSetup.css';
 
 export default function HostSetup() {
   console.debug('HostSetup: Render');
   const navigate = useNavigate();
-  const { protocol } = useProtocolContext();
+  const { protocol, setNewProtocol } = useProtocolContext();
   const [peerId, setPeerId] = useState('');
   const [copied, setCopied] = useState(false);
   const [waiting, setWaiting] = useState(true);
+  const [error, setError] = useState('');
+  const [initializing, setInitializing] = useState(false);
 
   useEffect(() => {
     console.debug('HostSetup: useEffect, protocol:', protocol);
-    if (!protocol || !protocol.peer) return;
+    
+    // Check if a pair is already established or if a new one has to be created
+    if (!protocol) {
+      console.debug('HostSetup: No protocol exists, creating new host');
+      setInitializing(true);
+      setError('');
+      Protocol.host().then(proto => {
+        console.debug('HostSetup: Protocol.host() successful', proto);
+        setNewProtocol(proto);
+        setInitializing(false);
+      }).catch(err => {
+        console.debug('HostSetup: Protocol.host() error', err);
+        setError('Failed to initialize host: ' + err.message);
+        setInitializing(false);
+      });
+      return;
+    }
+
+    // Protocol exists, check if it's properly set up
+    if (!protocol.peer) {
+      console.debug('HostSetup: Protocol exists but peer is not ready');
+      return;
+    }
+
+    console.debug('HostSetup: Using existing protocol pair');
     setPeerId(protocol.peer.id || '');
     protocol.onConnect(() => {
-      console.debug('HostSetup: onConnect ausgelöst');
+      console.debug('HostSetup: onConnect triggered');
       setWaiting(false);
       navigate('/chat', { replace: true });
     });
     // eslint-disable-next-line
-  }, [protocol, navigate]);
+  }, [protocol, navigate, setNewProtocol]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   const chatLink = peerId ? `${baseUrl}?host-id=${peerId}` : '';
+
+  if (error) {
+    return (
+      <div className="host-setup-container">
+        <h2>Host Setup Error</h2>
+        <div style={{ color: '#d63031', textAlign: 'center', marginBottom: 16 }}>
+          {error}
+        </div>
+        <button
+          className="copy-hostid-btn"
+          onClick={() => navigate('/')}
+        >
+          Back to Home
+        </button>
+      </div>
+    );
+  }
+
+  if (initializing) {
+    return (
+      <div className="host-setup-container">
+        <h2>Initializing Host...</h2>
+        <div className="host-waiting-status">
+          Setting up your host connection...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="host-setup-container">

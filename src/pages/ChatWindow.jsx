@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolContext } from '../ProtocolContext';
+import Message from '../components/Message';
 import './ChatWindow.css';
 
 export default function ChatWindow() {
@@ -35,8 +36,12 @@ export default function ChatWindow() {
   useEffect(() => {
     console.debug('ChatWindow: useEffect (protocol/isOpen)', protocol, isOpen);
     if (!protocol || !isOpen) return;
-    const onMsg = (text) => {
-      setMessages(msgs => [...msgs, { sender: 'Peer', text }]);
+    const onMsg = (text, timestamp) => {
+      setMessages(msgs => [...msgs, { 
+        sender: 'Peer', 
+        text, 
+        timestamp: timestamp || Date.now() 
+      }]);
     };
     protocol.onMessage(onMsg);
     return () => protocol.onMessage(null);
@@ -56,8 +61,13 @@ export default function ChatWindow() {
   const sendMessage = () => {
     console.debug('ChatWindow: sendMessage', input);
     if (!input.trim() || !protocol || !isOpen) return;
+    const timestamp = Date.now();
     protocol.sendMessage(input);
-    setMessages(msgs => [...msgs, { sender: 'You', text: input }]);
+    setMessages(msgs => [...msgs, { 
+      sender: 'You', 
+      text: input, 
+      timestamp 
+    }]);
     setInput('');
   };
 
@@ -67,9 +77,12 @@ export default function ChatWindow() {
     <>
       <div className="chatwindow-messages">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`chatwindow-message ${msg.sender === 'You' ? 'self' : 'peer'}`}>
-            <span>{msg.text}</span>
-          </div>
+          <Message
+            key={idx}
+            text={msg.text}
+            sender={msg.sender}
+            timestamp={msg.timestamp}
+          />
         ))}
         <div ref={messagesEndRef} />
       </div>
