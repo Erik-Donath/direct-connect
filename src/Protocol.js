@@ -1,4 +1,5 @@
 import Peer from 'peerjs';
+import E2EE from '@chatereum/react-e2ee';
 
 const PROTOCOL_VERSION = '1.0.0';
 
@@ -22,23 +23,56 @@ const PROTOCOL_METHODS = {
   
   message: {
     params: ['text', 'timestamp'],
-    handler: (protocol, params) => {
+    handler: async (protocol, params) => {
       console.debug('Protocol: message handler', params);
+      
+      // Decrypt the message if it's encrypted and we have the necessary keys
+      let decryptedText = params.text;
+      if (protocol.ownKeys && protocol.ownKeys.private_key && typeof params.text === 'object') {
+        try {
+          console.debug('Protocol: Decrypting received message');
+          decryptedText = await E2EE.decryptForPlaintext({
+            encrypted_text: params.text,
+            private_key: protocol.ownKeys.private_key
+          });
+          console.debug('Protocol: Message decrypted successfully');
+        } catch (error) {
+          console.error('Protocol: Failed to decrypt message', error);
+          decryptedText = '[Decryption failed]';
+        }
+      }
+      
       if (protocol.callbacks.onMessage) {
-        protocol.callbacks.onMessage(params.text, params.timestamp);
+        protocol.callbacks.onMessage(decryptedText, params.timestamp);
       }
     }
   },
   
   handshake: {
-    params: ['version'],
+    params: ['version', 'public_key'],
     handler: (protocol, params) => {
       console.debug('Protocol: handshake handler', params);
       if (params.version === PROTOCOL_VERSION) {
+        // Store peer's public key for E2EE
+        protocol.peerPublicKey = params.public_key;
+        console.debug('Protocol: Stored peer public key for E2EE');
+        
         // Only clients should respond to handshake with their own handshake
         // Hosts should not send handshake back when they receive one
         if (!protocol._isHost && !protocol._handshakeDone) {
-          protocol.sendHandshake();
+          // Wait for keys to be ready before sending handshake
+          if (protocol.ownKeys) {
+            protocol.sendHandshake();
+          } else {
+            // Wait for keys to be generated
+            const waitForKeys = async () => {
+              while (!protocol.ownKeys) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+              protocol.sendHandshake();
+            };
+            waitForKeys();
+          }
         }
         protocol._handshakeDone = true;
         if (protocol.callbacks.onConnect) {
@@ -93,6 +127,11 @@ class Protocol {
     console.debug('Protocol: Constructor', peer);
     this.peer = peer;
     this.conn = null;
+
+    // E2EE keys
+    this.ownKeys = null;
+    this.peerPublicKey = null;
+
     this._handshakeDone = false;
     this._isHost = false;
     this._pingInterval = null;
@@ -106,6 +145,19 @@ class Protocol {
       onMessage: null,
       onPing: null
     };
+
+    // Generate E2EE keys on initialization
+    this._generateKeys();
+  }
+
+  async _generateKeys() {
+    try {
+      console.debug('Protocol: Generating E2EE keys');
+      this.ownKeys = await E2EE.getKeys();
+      console.debug('Protocol: E2EE keys generated successfully');
+    } catch (error) {
+      console.error('Protocol: Failed to generate E2EE keys', error);
+    }
   }
 
   static host() {
@@ -177,16 +229,41 @@ class Protocol {
     this._send({ type: 'disconnect', reason });
   }
 
-  sendMessage(text, timestamp = Date.now()) {
+  async sendMessage(text, timestamp = Date.now()) {
     console.debug('Protocol: sendMessage', text, timestamp);
     if (this.conn && this.conn.open && this._handshakeDone) {
-      this._send({ type: 'message', text, timestamp });
+      // Encrypt the message if we have the peer's public key
+      let messageText = text;
+      if (this.peerPublicKey) {
+        try {
+          console.debug('Protocol: Encrypting outgoing message');
+          messageText = await E2EE.encryptPlaintext({
+            public_key: this.peerPublicKey,
+            plain_text: text
+          });
+          console.debug('Protocol: Message encrypted successfully');
+        } catch (error) {
+          console.error('Protocol: Failed to encrypt message', error);
+          // Fall back to sending unencrypted message
+          messageText = text;
+        }
+      }
+      
+      this._send({ type: 'message', text: messageText, timestamp });
     }
   }
 
   sendHandshake(version = PROTOCOL_VERSION) {
     console.debug('Protocol: sendHandshake', version);
-    this._send({ type: 'handshake', version });
+    if (this.ownKeys && this.ownKeys.public_key) {
+      this._send({ 
+        type: 'handshake', 
+        version, 
+        public_key: this.ownKeys.public_key 
+      });
+    } else {
+      console.warn('Protocol: Cannot send handshake - E2EE keys not ready');
+    }
   }
 
   sendPing(timestamp = Date.now()) {
@@ -202,11 +279,15 @@ class Protocol {
       this._processMessage(data);
     });
     
-    conn.on('open', () => {
+    conn.on('open', async () => {
       console.debug('Protocol: Connection opened');
       
-      // Host sends handshake first
+      // Wait for keys to be generated before sending handshake
       if (this._isHost) {
+        // Wait for keys to be ready
+        while (!this.ownKeys) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
         this.sendHandshake();
       }
       

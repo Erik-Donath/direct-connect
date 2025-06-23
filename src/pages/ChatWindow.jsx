@@ -61,11 +61,11 @@ export default function ChatWindow() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     console.debug('ChatWindow: sendMessage', input);
     if (!input.trim() || !protocol || !isOpen) return;
     const timestamp = Date.now();
-    protocol.sendMessage(input);
+    await protocol.sendMessage(input);
     setMessages(msgs => [...msgs, { 
       sender: 'You', 
       text: input, 
