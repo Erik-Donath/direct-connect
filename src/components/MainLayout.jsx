@@ -20,7 +20,7 @@ export default function MainLayout({ title }) {
         </span>
         <a
           className="github-link"
-          href="https://github.com/your-repo"
+          href="https://github.com/Erik-Donath/direct-connect/"
           target="_blank"
           rel="noopener noreferrer"
         >
