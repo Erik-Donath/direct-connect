@@ -2,20 +2,20 @@
 const METHODS ={
     'message': {
         params: ['text'],
-        handler: (params, _) => {
+        handler: (params, raw) => {
             return params.text;
         }
     },
     'ping': {
         params: [],
-        handler: (_, _) => {
+        handler: (params, raw) => {
             console.log('[Protocol] Received ping');
             return null;
         }
     },
     'pong': {
         params: [],
-        handler: (_, _) => {
+        handler: (params, raw) => {
             console.log('[Protocol] Received pong');
             return null;
         }
