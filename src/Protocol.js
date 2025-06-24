@@ -69,7 +69,7 @@ class Connection {
       console.debug('[Connection] Incoming connection.');
       if(this.conn) {
         console.warn('[Connection] Already connected, closing new connection.');
-        try { conn.close(); } catch {}
+        this.close();
         return;
       }
       this._setupConn(conn);
@@ -140,19 +140,28 @@ class Connection {
 
   close() {
     if (this.conn) {
-      try { this.conn.close(); } catch {}
+      try { this.conn.close(); } catch (e) { /* intentionally ignored */ }
       this.conn = null;
     }
+    this._onData = null;
+    this._onOpen = null;
+    this._onClose = null;
+    this._onError = null;
+    console.debug('[Connection] Connection closed.');
+  }
+
+  destroy() {
+    this.close();
     if (this.peer) {
       this._events.forEach(({ type, handler }) => {
         this.peer.off(type, handler);
       });
       this.peer.removeAllListeners();
-      try { this.peer.destroy(); } catch {}
+      try { this.peer.destroy(); } catch (e) { /* intentionally ignored */ }
       this.peer = null;
     }
     this._events = [];
-    console.debug('[Connection] Cleaned up.');
+    console.debug('[Connection] Peer destroyed.');
   }
 }
 
@@ -161,7 +170,7 @@ const PROTOCOL_METHODS = {
     params: ['reason'],
     handler: (protocol, params) => {
       if (protocol.callbacks.onDisconnect) protocol.callbacks.onDisconnect(params.reason);
-      protocol.closeConnection();
+      protocol.destroyConnection();
     }
   },
   message: {
@@ -235,6 +244,10 @@ class Protocol {
     this.connection.close();
   }
 
+  destroyConnection() {
+    this.connection.destroy();
+  }
+
   async _generateKeys() {
     this.connectionState.ownKeys = await E2EE.getKeys();
     console.debug('[Protocol] E2EE key pair generated.');
@@ -256,7 +269,7 @@ class Protocol {
     await proto.connection.createPeer();
     proto.connectionState.isHost = true;
     proto.state = 'WAIT_FOR_HANDSHAKE';
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       proto.connection.listenForConnections(conn => {
         proto._setupConnection(conn);
         console.debug('[Protocol] Incoming connection received (host).');
@@ -316,7 +329,7 @@ class Protocol {
       timeoutId = setTimeout(() => {
         if (!didFinish) {
           didFinish = true;
-          try { proto.connection.close(); } catch (e) { console.error('Error closing connection after timeout:', e); }
+          try { proto.connection.close(); } catch (e) {}
           const err = new Error('Connection could not be established (timeout).');
           console.error(err);
           reject(err);
@@ -331,12 +344,10 @@ class Protocol {
   onPing(callback) { this.callbacks.onPing = callback; }
   onTypingState(callback) { this.callbacks.onTypingState = callback; }
 
-  // Returns true if protocol, connection and connection is open
   isReady() {
     return this && this.connection && this.connection.isOpen();
   }
 
-  // Returns the peer id if available
   getPeerId() {
     return this.connection && this.connection.peer ? this.connection.peer.id : '';
   }
@@ -611,7 +622,7 @@ class Protocol {
   _handleDisconnect(reason = 'connection-closed') {
     if (this._pingInterval) clearInterval(this._pingInterval);
     this.state = 'INIT';
-    this.connection.close();
+    this.connection.destroy();
     this.connectionState = {
       ownKeys: null,
       peerPublicKey: null,
