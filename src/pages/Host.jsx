@@ -24,6 +24,7 @@ export default function Host() {
   const [initializing, setInitializing] = useState(false);
 
   useEffect(() => {
+    if (peerId) return;
     setInitializing(true);
     setError('');
     setWaiting(true);
@@ -43,7 +44,7 @@ export default function Host() {
       setError('Failed to initialize host: ' + err.message);
       setInitializing(false);
     });
-  }, [navigate]);
+  }, [navigate, setNewProtocol, peerId]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   const chatLink = peerId ? `${baseUrl}?host-id=${peerId}` : '';

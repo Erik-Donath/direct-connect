@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Protocol from '../Protocol';
 import { useProtocolContext } from '../ProtocolContext.js';
@@ -10,22 +10,9 @@ export default function App() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { setNewProtocol, destroyProtocol } = useProtocolContext();
+  const hasAutoConnected = useRef(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hostIdParam = params.get('host-id');
-    if (hostIdParam) {
-      setHostId(hostIdParam);
-      setTimeout(() => handleConnect(hostIdParam), 0);
-      console.debug('[App] Auto-connecting with hostId from URL:', hostIdParam);
-    }
-  }, []);
-
-  const handleHost = () => {
-    navigate('/host');
-  };
-
-  const handleConnect = (idOverride) => {
+  const handleConnect = useCallback((idOverride) => {
     setError('');
     setConnecting(true);
     try {
@@ -50,6 +37,22 @@ export default function App() {
       setConnecting(false);
       console.error('[App] Connection failed:', err);
     });
+  }, [destroyProtocol, hostId, navigate, setNewProtocol]);
+
+  useEffect(() => {
+    if (hasAutoConnected.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const hostIdParam = params.get('host-id');
+    if (hostIdParam) {
+      setHostId(hostIdParam);
+      setTimeout(() => handleConnect(hostIdParam), 0);
+      hasAutoConnected.current = true;
+      console.debug('[App] Auto-connecting with hostId from URL:', hostIdParam);
+    }
+  }, [handleConnect]);
+
+  const handleHost = () => {
+    navigate('/host');
   };
 
   return (

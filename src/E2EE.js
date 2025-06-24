@@ -1,6 +1,3 @@
-// E2EE.js
-// Utility functions for key generation and nonce creation
-
 export async function generateKeyPair() {
   return await window.crypto.subtle.generateKey(
     {
@@ -37,7 +34,6 @@ export async function exportPrivateKeyToPem(key) {
 }
 
 export function generateNonce(length = 24) {
-  // Secure random nonce, base64 encoded
   const array = new Uint8Array(length);
   window.crypto.getRandomValues(array);
   return btoa(String.fromCharCode(...array));

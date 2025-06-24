@@ -138,7 +138,7 @@ class Connection {
 
   close() {
     if (this.conn) {
-      try { this.conn.close(); } catch (e) { /* intentionally ignored */ }
+      try { this.conn.close(); } catch { /* intentionally ignored */ }
       this.conn = null;
     }
     this._onData = null;
@@ -152,7 +152,7 @@ class Connection {
     this.close();
     if (this.peer) {
       this.peer.removeAllListeners();
-      try { this.peer.destroy(); } catch (e) { /* intentionally ignored */ }
+      try { this.peer.destroy(); } catch { /* intentionally ignored */ }
       this.peer = null;
     }
     console.debug('[Connection] Peer destroyed.');
@@ -323,7 +323,7 @@ class Protocol {
       timeoutId = setTimeout(() => {
         if (!didFinish) {
           didFinish = true;
-          try { proto.connection.close(); } catch (e) {}
+          proto.connection.close();
           const err = new Error('Connection could not be established (timeout).');
           console.error(err);
           reject(err);
@@ -402,7 +402,6 @@ class Protocol {
 
   _setupConnection(conn, resolve, reject = null) {
     this.connection.conn = conn;
-    // Set up data handler for this connection
     this.connection.onData(this._handleInitData.bind(this));
     conn.on('open', async () => {
       if (this.connectionState.isHost) {
