@@ -23,7 +23,9 @@ const PROTOCOL_VERSION = '1.2.3';
  * 6. Client receives 'handshake-final', verifies signature. If valid, both peers are authenticated and switch to normal message handling.
  * 7. After authentication, protocol methods are available for normal communication (message, ping, disconnect). Ping system starts automatically.
  * 8. If no ping is received for 2 seconds, the connection is considered lost and both peers disconnect gracefully.
- *
+ * 9. Disconnect can be initiated by either peer with a reason, which is sent to the other peer.
+ * 10. After disconnect, both peers reset their connection state and can start a new connection.
+ * 
  * Available protocol methods after authentication:
  * - message: { text, timestamp } — Send a (possibly encrypted) chat message.
  * - ping: { timestamp } — Ping for connection health.
