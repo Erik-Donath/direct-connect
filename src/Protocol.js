@@ -9,8 +9,9 @@ import { generateKeyPair, exportPublicKeyToPem, exportPrivateKeyToPem, generateN
  * 1.2.0 - Now uses a state machine for connection initialization and handshake
  * 1.2.1 - Added signature verification for handshake, improved error handling, and nonce management
  * 1.2.2 - Improved connection flow by implementing Conection Class and refactoring Protocol methods
+ * 1.2.3 - Added check for connection state before sending handshake messages, improved error handling, and cleaned up code structure
  */
-const PROTOCOL_VERSION = '1.2.2';
+const PROTOCOL_VERSION = '1.2.3';
 
 /**
  * Connection flow:
@@ -62,6 +63,11 @@ class Connection {
     if (!this.peer) throw new Error('Peer not initialized');
     const handler = conn => {
       console.debug('[Connection] Incoming connection.');
+      if(this.conn) {
+        console.warn('[Connection] Already connected, closing new connection.');
+        try { conn.close(); } catch {}
+        return;
+      }
       this._setupConn(conn);
       if (onConnection) onConnection(conn);
     };
@@ -166,6 +172,7 @@ const PROTOCOL_METHODS = {
             private_key: protocol.connectionState.ownKeys.private_key
           });
         } catch {
+          console.error('[Protocol] Decryption failed:', params.text);
           decryptedText = '[Decryption failed]';
         }
       }
@@ -204,17 +211,14 @@ class Protocol {
     this._lastPingReceived = null;
     this._generateKeys();
     this._generateSigKeys();
-    // Set up data handler
     this.connection.onData(this._handleInitData.bind(this));
     console.debug('[Protocol] Protocol instance created.');
   }
 
-  // Returns true if the connection is open
   isConnectionOpen() {
     return this.connection.isOpen();
   }
 
-  // Closes the connection if it exists
   closeConnection() {
     this.connection.close();
   }
@@ -245,11 +249,9 @@ class Protocol {
         proto._setupConnection(conn);
         console.debug('[Protocol] Incoming connection received (host).');
       });
-      // Wait for peerId to be available
       const checkPeerId = () => {
         const id = proto.getPeerId();
         if (id) {
-          console.debug('[Protocol] Host ready, peerId:', id);
           resolve(proto);
           return true;
         }
@@ -399,12 +401,12 @@ class Protocol {
       }
     });
     conn.on('close', () => {
-      this._handleDisconnect();
+      this._handleDisconnect('connection-closed');
       if (reject) reject(new Error('Connection closed'));
       console.debug('[Protocol] Connection closed.');
     });
     conn.on('error', (err) => {
-      this._handleDisconnect();
+      this._handleDisconnect('connection-error');
       if (reject) reject(err);
       console.error('[Protocol] Connection error:', err);
     });
@@ -448,6 +450,12 @@ class Protocol {
     );
   }
 
+  _initFailed(reason) {
+    this.sendDisconnect(reason);
+    this.closeConnection();
+    console.debug(`[Protocol] Handshake failed: ${reason}. Connection closed.`);
+  }
+
   async _handleInitData(rawData) {
     while (!this.connectionState.ownKeys || !this.connectionState.ownKeys.private_key || !this.connectionState.ownSigKeys) {
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -455,72 +463,98 @@ class Protocol {
     console.debug('[Protocol] Incoming (init phase):', rawData);
     const message = this._parseMessage(rawData);
     if (!message) {
-      this.sendDisconnect('invalid-message');
-      this.closeConnection();
-      console.debug('[Protocol] Invalid handshake message received, connection closed.');
+      this._initFailed('invalid-message');
       return;
     }
     if (this.state === 'AUTHENTICATED') {
+      console.warn('[Protocol] Received data in InitDataHandler in AUTHENTICATED state, redirecting to handleData:', message);
       this.connection.onData(this._handleData.bind(this));
+      this._handleData(rawData);
       return;
     }
-    if (message.type === 'handshake-init') {
-      if (message.version !== PROTOCOL_VERSION) {
-        this.sendDisconnect('version-mismatch');
-        this.closeConnection();
-        console.debug('[Protocol] Version mismatch in handshake, connection closed.');
-        return;
+    switch (message.type) {
+      case 'handshake-init': {
+        if (this.connectionState.isHost) {
+          this._initFailed('unexpected-handshake-init');
+          return;
+        }
+        if (message.version !== PROTOCOL_VERSION) {
+          this._initFailed('version-mismatch');
+          return;
+        }
+        this.connectionState.peerPublicKey = message.public_key;
+        this.connectionState.peerNonce = message.nonce;
+        this.connectionState.peerSigPublicPem = message.sig_public_key;
+        this.connectionState.ownNonce = this._generateNonce();
+        const signedPeerNonce = await this.signNonce({ nonce: this.connectionState.peerNonce });
+        this._send({
+          type: 'handshake-response',
+          public_key: this.connectionState.ownKeys.public_key,
+          sig_public_key: this.connectionState.ownSigKeys.publicPem,
+          nonce: this.connectionState.ownNonce,
+          signed_peer_nonce: signedPeerNonce
+        });
+        this.state = 'WAIT_FOR_RESPONSE';
+        console.debug('[Protocol] Sent handshake-response.');
+        break;
       }
-      this.connectionState.peerPublicKey = message.public_key;
-      this.connectionState.peerNonce = message.nonce;
-      this.connectionState.peerSigPublicPem = message.sig_public_key;
-      this.connectionState.ownNonce = this._generateNonce();
-      const signedPeerNonce = await this.signNonce({ nonce: this.connectionState.peerNonce });
-      this._send({
-        type: 'handshake-response',
-        public_key: this.connectionState.ownKeys.public_key,
-        sig_public_key: this.connectionState.ownSigKeys.publicPem,
-        nonce: this.connectionState.ownNonce,
-        signed_peer_nonce: signedPeerNonce
-      });
-      this.state = 'WAIT_FOR_RESPONSE';
-      console.debug('[Protocol] Sent handshake-response.');
-    } else if (message.type === 'handshake-response') {
-      this.connectionState.peerPublicKey = message.public_key;
-      this.connectionState.peerSigPublicPem = message.sig_public_key;
-      this.connectionState.peerNonce = message.nonce;
-      const valid = await this.verifyNonce({
-        public_key: this.connectionState.peerSigPublicPem,
-        nonce: this.connectionState.ownNonce,
-        signature: message.signed_peer_nonce
-      });
-      if (!valid) {
-        this.sendDisconnect('handshake-invalid');
-        this.closeConnection();
-        console.debug('[Protocol] Handshake signature invalid, connection closed.');
-        return;
+      case 'handshake-response': {
+        if (!this.connectionState.isHost) {
+          this._initFailed('unexpected-handshake-response');
+          return;
+        }
+        this.connectionState.peerPublicKey = message.public_key;
+        this.connectionState.peerSigPublicPem = message.sig_public_key;
+        this.connectionState.peerNonce = message.nonce;
+        const valid = await this.verifyNonce({
+          public_key: this.connectionState.peerSigPublicPem,
+          nonce: this.connectionState.ownNonce,
+          signature: message.signed_peer_nonce
+        });
+        if (!valid) {
+          this._initFailed('handshake-invalid');
+          return;
+        }
+        const signedPeerNonce = await this.signNonce({ nonce: this.connectionState.peerNonce });
+        this._send({
+          type: 'handshake-final',
+          signed_peer_nonce: signedPeerNonce
+        });
+        this._handshakeComplete();
+        console.debug('[Protocol] Sent handshake-final.');
+        break;
       }
-      const signedPeerNonce = await this.signNonce({ nonce: this.connectionState.peerNonce });
-      this._send({
-        type: 'handshake-final',
-        signed_peer_nonce: signedPeerNonce
-      });
-      this._handshakeComplete();
-      console.debug('[Protocol] Sent handshake-final.');
-    } else if (message.type === 'handshake-final') {
-      const valid = await this.verifyNonce({
-        public_key: this.connectionState.peerSigPublicPem,
-        nonce: this.connectionState.ownNonce,
-        signature: message.signed_peer_nonce
-      });
-      if (!valid) {
-        this.sendDisconnect('handshake-invalid');
-        this.closeConnection();
-        console.debug('[Protocol] Handshake-final signature invalid, connection closed.');
-        return;
+      case 'handshake-final': {
+        if (this.connectionState.isHost) {
+          this._initFailed('unexpected-handshake-final');
+          return;
+        }
+        const valid = await this.verifyNonce({
+          public_key: this.connectionState.peerSigPublicPem,
+          nonce: this.connectionState.ownNonce,
+          signature: message.signed_peer_nonce
+        });
+        if (!valid) {
+          this._initFailed('handshake-invalid');
+          return;
+        }
+        this._handshakeComplete();
+        console.debug('[Protocol] Handshake complete.');
+        break;
       }
-      this._handshakeComplete();
-      console.debug('[Protocol] Handshake complete.');
+      case 'ping': {
+        console.warn('[Protocol] Received ping in init phase, ignoring.');
+        break;
+      }
+      case 'disconnect': {
+        console.debug('[Protocol] Received disconnect in init phase:', message.reason);
+        this._handleDisconnect(message.reason);
+        break;
+      }
+      default: {
+        this._initFailed('unexpected-message-type');
+        break;
+      }
     }
   }
 
@@ -554,7 +588,7 @@ class Protocol {
     return generateNonce(length);
   }
 
-  _handleDisconnect() {
+  _handleDisconnect(reason = 'connection-closed') {
     if (this._pingInterval) clearInterval(this._pingInterval);
     this.state = 'INIT';
     this.connection.close();
@@ -568,7 +602,7 @@ class Protocol {
       peerNonce: null
     };
     this.onData = this._handleInitData.bind(this);
-    if (this.callbacks.onDisconnect) this.callbacks.onDisconnect('connection-closed');
+    if (this.callbacks.onDisconnect) this.callbacks.onDisconnect(reason);
     console.debug('[Protocol] State machine and connection reset.');
   }
 
