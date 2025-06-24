@@ -31,7 +31,7 @@ const PROTOCOL_VERSION = '1.3.0';
  * - message: { text, timestamp } — Send a (possibly encrypted) chat message.
  * - ping: { timestamp } — Ping for connection health.
  * - disconnect: { reason } — Graceful disconnect with reason.
- * - state { typing } - Notify the other peer about typing state
+ * - typing_state { typing } - Notify the other peer about typing state
  */
 
 class Connection {
