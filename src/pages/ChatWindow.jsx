@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProtocolContext } from '../protocolContextUtils.js';
+import { useProtocolContext } from '../ProtocolProviderUtils.js';
 import Message from '../components/Message';
 import './ChatWindow.css';
 

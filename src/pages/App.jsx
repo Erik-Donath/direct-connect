@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Protocol from '../Protocol';
-import { useProtocolContext } from '../protocolContextUtils.js';
+import { useProtocolContext } from '../ProtocolProviderUtils.js';
 import './App.css';
 
 export default function App() {

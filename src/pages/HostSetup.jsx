@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProtocolContext } from '../protocolContextUtils.js';
+import { useProtocolContext } from '../ProtocolProviderUtils.js';
 import Protocol from '../Protocol';
 import './HostSetup.css';
 

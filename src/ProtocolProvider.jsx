@@ -1,4 +1,4 @@
-import { ProtocolContext } from './protocolContextUtils';
+import { ProtocolContext } from './ProtocolProviderUtils';
 import { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 
