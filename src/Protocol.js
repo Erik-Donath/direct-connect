@@ -30,7 +30,7 @@ const PROTOCOL_VERSION = '1.2.3';
  * - message: { text, timestamp } — Send a (possibly encrypted) chat message.
  * - ping: { timestamp } — Ping for connection health.
  * - disconnect: { reason } — Graceful disconnect with reason.
- **/
+ */
 
 class Connection {
   constructor() {
@@ -108,7 +108,6 @@ class Connection {
     if (this.isOpen()) {
       try {
         this.conn.send(JSON.stringify(obj));
-        console.debug('[Connection] Sent data:', obj);
       } catch (e) {
         console.error('[Connection] Failed to send data:', e);
       }
