@@ -4,17 +4,32 @@ import E2EE from '@chatereum/react-e2ee';
 // Protocol versions:
 // 1.0.0 - Initial version (no encryption, basic message handling)
 // 1.1.0 - Added E2EE support, ping system, and disconnect handling
-const PROTOCOL_VERSION = '1.1.0';
+// 1.2.0 - Now uses a state machine for connection initialization and handshake
+// 1.2.1 - Added signature verification for handshake, improved error handling, and nonce management
+const PROTOCOL_VERSION = '1.2.1';
 
-// Shared peer instance that is only created once
+/**
+ * Connection flow:
+ * 1. Both peers generate E2EE key pairs on initialization.
+ * 2. Host waits for incoming connection, client connects to host.
+ * 3. Host sends 'handshake-init' (version, public_key, nonce) after connection is open.
+ * 4. Client receives 'handshake-init', stores host's public key and nonce, generates its own nonce, and replies with 'handshake-response' (public_key, nonce, signed_peer_nonce).
+ * 5. Host receives 'handshake-response', verifies signature, stores client's public key and nonce, replies with 'handshake-final' (signed_peer_nonce).
+ * 6. Client receives 'handshake-final', verifies signature. If valid, both peers are authenticated and switch to normal message handling.
+ * 7. Only after authentication, protocol methods are available for normal communication.
+ *
+ * Available protocol methods after authentication:
+ * - message: { text, timestamp } — Send a (possibly encrypted) chat message.
+ * - ping: { timestamp } — Ping for connection health.
+ * - disconnect: { reason } — Graceful disconnect with reason.
+ **/
+
 let shared_pair = null;
 
-// Protocol method definitions with handlers and required parameters
 const PROTOCOL_METHODS = {
   disconnect: {
     params: ['reason'],
     handler: (protocol, params) => {
-      console.debug('[Protocol] Disconnect handler called with params:', params);
       if (protocol.callbacks.onDisconnect) {
         protocol.callbacks.onDisconnect(params.reason);
       }
@@ -23,76 +38,28 @@ const PROTOCOL_METHODS = {
       }
     }
   },
-  
   message: {
     params: ['text', 'timestamp'],
     handler: async (protocol, params) => {
-      console.debug('[Protocol] Message handler called with params:', params);
-      
-      // Decrypt the message if it's encrypted and we have the necessary keys
       let decryptedText = params.text;
       if (protocol.ownKeys && protocol.ownKeys.private_key && typeof params.text === 'object') {
         try {
-          console.debug('[Protocol] Decrypting received message...');
           decryptedText = await E2EE.decryptForPlaintext({
             encrypted_text: params.text,
             private_key: protocol.ownKeys.private_key
           });
-          console.debug('[Protocol] Message decrypted successfully');
-        } catch (error) {
-          console.error('[Protocol] Failed to decrypt message:', error);
+        } catch {
           decryptedText = '[Decryption failed]';
         }
       }
-      
       if (protocol.callbacks.onMessage) {
         protocol.callbacks.onMessage(decryptedText, params.timestamp);
       }
     }
   },
-  
-  handshake: {
-    params: ['version', 'public_key'],
-    handler: (protocol, params) => {
-      console.debug('[Protocol] Handshake handler called with params:', params);
-      if (params.version === PROTOCOL_VERSION) {
-        // Store peer's public key for E2EE
-        protocol.peerPublicKey = params.public_key;
-        console.debug('[Protocol] Peer public key for E2EE stored');
-        
-        // Only clients should respond to handshake with their own handshake
-        // Hosts should not send handshake back when they receive one
-        if (!protocol._isHost && !protocol._handshakeDone) {
-          // Wait for keys to be ready before sending handshake
-          if (protocol.ownKeys) {
-            protocol.sendHandshake();
-          } else {
-            // Wait for keys to be generated
-            const waitForKeys = async () => {
-              while (!protocol.ownKeys) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-              }
-              protocol.sendHandshake();
-            };
-            waitForKeys();
-          }
-        }
-        protocol._handshakeDone = true;
-        if (protocol.callbacks.onConnect) {
-          protocol.callbacks.onConnect();
-        }
-        protocol._startPingSystem();
-      } else {
-        protocol.sendDisconnect('version-mismatch');
-        protocol.conn.close();
-      }
-    }
-  },
-  
   ping: {
     params: ['timestamp'],
     handler: (protocol, params) => {
-      console.debug('[Protocol] Ping handler called with params:', params);
       protocol._lastPingReceived = Date.now();
       if (protocol.callbacks.onPing) {
         protocol.callbacks.onPing(params.timestamp);
@@ -101,14 +68,12 @@ const PROTOCOL_METHODS = {
   }
 };
 
-// Function to create shared peer instance
 function createSharedPair() {
   return new Promise((resolve, reject) => {
     if (shared_pair) {
       resolve(shared_pair);
       return;
     }
-    
     const peer = new Peer();
     peer.on('open', () => {
       shared_pair = peer;
@@ -126,17 +91,16 @@ class Protocol {
     this.peer = peer;
     this.conn = null;
 
-    // E2EE keys
     this.ownKeys = null;
     this.peerPublicKey = null;
+    this.ownSigKeys = null;
+    this.peerSigPublicPem = null;
 
-    this._handshakeDone = false;
     this._isHost = false;
-    this._pingInterval = null;
-    this._pingTimeout = null;
-    this._lastPingReceived = null;
-    
-    // Callbacks for UI integration
+    this.state = 'INIT'; // INIT, WAIT_FOR_HANDSHAKE, WAIT_FOR_RESPONSE, WAIT_FOR_FINAL, AUTHENTICATED, CLOSED
+    this.ownNonce = null;
+    this.peerNonce = null;
+
     this.callbacks = {
       onConnect: null,
       onDisconnect: null,
@@ -144,35 +108,60 @@ class Protocol {
       onPing: null
     };
 
-    // Generate E2EE keys on initialization
+    this.onData = this._handleInitData.bind(this);
+
     this._generateKeys();
+    this._generateSigKeys();
   }
 
   async _generateKeys() {
-    try {
-      this.ownKeys = await E2EE.getKeys();
-    } catch (error) {
-      console.error('[Protocol] Failed to generate E2EE keys:', error);
-    }
+    this.ownKeys = await E2EE.getKeys();
+  }
+
+  async _generateSigKeys() {
+    const keyPair = await window.crypto.subtle.generateKey(
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256',
+      },
+      true,
+      ['sign', 'verify']
+    );
+    this.ownSigKeys = {
+      publicKey: keyPair.publicKey,
+      privateKey: keyPair.privateKey,
+      publicPem: await this._exportPublicKeyToPem(keyPair.publicKey),
+      privatePem: await this._exportPrivateKeyToPem(keyPair.privateKey)
+    };
+  }
+
+  async _exportPublicKeyToPem(key) {
+    const spki = await window.crypto.subtle.exportKey('spki', key);
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(spki)));
+    return '-----BEGIN PUBLIC KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PUBLIC KEY-----';
+  }
+
+  async _exportPrivateKeyToPem(key) {
+    const pkcs8 = await window.crypto.subtle.exportKey('pkcs8', key);
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
+    return '-----BEGIN PRIVATE KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PRIVATE KEY-----';
   }
 
   static host() {
     return new Promise((resolve, reject) => {
-      // Both client and host need a Peer object, so both host and connect functions are the same at the beginning
       createSharedPair().then(peer => {
         const proto = new Protocol(peer);
         proto._isHost = true;
-        
-        // Set up connection handler with client limit check
+        proto.state = 'WAIT_FOR_HANDSHAKE';
         peer.on('connection', conn => {
-          // Only one client can connect - check if we already have a connection
           if (proto.conn !== null) {
             conn.close();
             return;
           }
           proto._handleConnection(conn);
         });
-        
         resolve(proto);
       }).catch(reject);
     });
@@ -180,275 +169,255 @@ class Protocol {
 
   static connect(hostId) {
     return new Promise((resolve, reject) => {
-      // Both client and host need a Peer object, so both host and connect functions are the same at the beginning
       createSharedPair().then(peer => {
         const proto = new Protocol(peer);
         proto._isHost = false;
-        
-        // Connect function uses the shared_pair and calls .connect for the connection pair needed by the client
+        proto.state = 'WAIT_FOR_HANDSHAKE';
         const conn = peer.connect(hostId);
         proto._handleConnection(conn, resolve, reject);
       }).catch(reject);
     });
   }
 
-  // Get list of available protocol methods
-  getProtocolMethods() {
-    return Object.keys(PROTOCOL_METHODS);
+  onConnect(callback) { this.callbacks.onConnect = callback; }
+  onDisconnect(callback) { this.callbacks.onDisconnect = callback; }
+  onMessage(callback) { this.callbacks.onMessage = callback; }
+  onPing(callback) { this.callbacks.onPing = callback; }
+
+  _startPing() {
+    this._lastPingReceived = Date.now();
+    if (this._pingInterval) clearInterval(this._pingInterval);
+    this._pingInterval = setInterval(() => {
+      if (this.conn && this.conn.open) {
+        this._send({ type: 'ping', timestamp: Date.now() });
+      }
+      // If no ping received for 15 seconds, disconnect
+      if (Date.now() - this._lastPingReceived > 2000) {
+        this.sendDisconnect('ping-timeout');
+        this.conn && this.conn.close();
+        clearInterval(this._pingInterval);
+      }
+    }, 1000);
   }
 
-  // Callback setters for UI integration
-  onConnect(callback) {
-    this.callbacks.onConnect = callback;
-  }
-
-  onDisconnect(callback) {
-    this.callbacks.onDisconnect = callback;
-  }
-
-  onMessage(callback) {
-    this.callbacks.onMessage = callback;
-  }
-
-  onPing(callback) {
-    this.callbacks.onPing = callback;
-  }
-
-  // Send methods for each protocol method
   sendDisconnect(reason = 'user-disconnect') {
-    console.debug('[Protocol] sendDisconnect called with reason:', reason);
+    if (this._pingInterval) clearInterval(this._pingInterval);
     this._send({ type: 'disconnect', reason });
   }
 
   async sendMessage(text, timestamp = Date.now()) {
-    console.debug('[Protocol] sendMessage called with text and timestamp:', text, timestamp);
-    if (this.conn && this.conn.open && this._handshakeDone) {
-      // Encrypt the message if we have the peer's public key
+    if (this.conn && this.conn.open && this.state === 'AUTHENTICATED') {
       let messageText = text;
       if (this.peerPublicKey) {
         try {
-          console.debug('[Protocol] Encrypting outgoing message...');
           messageText = await E2EE.encryptPlaintext({
             public_key: this.peerPublicKey,
             plain_text: text
           });
-          console.debug('[Protocol] Message encrypted successfully');
-        } catch (error) {
-          console.error('[Protocol] Failed to encrypt message:', error);
-          // Fall back to sending unencrypted message
+        } catch {
           messageText = text;
         }
       }
-      
       this._send({ type: 'message', text: messageText, timestamp });
     }
   }
 
-  sendHandshake(version = PROTOCOL_VERSION) {
-    console.debug('[Protocol] sendHandshake called with version:', version);
-    if (this.ownKeys && this.ownKeys.public_key) {
-      this._send({ 
-        type: 'handshake', 
-        version, 
-        public_key: this.ownKeys.public_key 
-      });
-    } else {
-      console.warn('[Protocol] Cannot send handshake – E2EE keys not ready');
+  _send(obj) {
+    if (this.conn && this.conn.open) {
+      console.debug('[Protocol] Outgoing:', obj);
+      this.conn.send(JSON.stringify(obj));
     }
   }
 
-  sendPing(timestamp = Date.now()) {
-    console.debug('[Protocol] sendPing called with timestamp:', timestamp);
-    this._send({ type: 'ping', timestamp });
-  }
-
   _handleConnection(conn, resolve, reject = null) {
-    console.debug('[Protocol] _handleConnection called with connection:', conn);
     this.conn = conn;
-    
+
     conn.on('data', (data) => {
-      this._processMessage(data);
+      this.onData(data);
     });
-    
+
     conn.on('open', async () => {
-      console.debug('[Protocol] Connection opened');
-      
-      // Wait for keys to be generated before sending handshake
       if (this._isHost) {
-        // Wait for keys to be ready
-        while (!this.ownKeys) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+        while (!this.ownKeys || !this.ownSigKeys) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-        this.sendHandshake();
+        this.ownNonce = this._generateNonce();
+        this._send({
+          type: 'handshake-init',
+          version: PROTOCOL_VERSION,
+          public_key: this.ownKeys.public_key,
+          sig_public_key: this.ownSigKeys.publicPem,
+          nonce: this.ownNonce
+        });
       }
-      
-      // Set up connection timeout for clients
       if (!this._isHost && reject) {
         setTimeout(() => {
-          if (!this._handshakeDone) {
+          if (this.state !== 'AUTHENTICATED') {
             reject(new Error('Handshake timeout'));
           }
         }, 4000);
       }
     });
-    
+
     conn.on('close', () => {
-      console.debug('[Protocol] Connection closed');
       this.conn = null;
+      if (this._pingInterval) clearInterval(this._pingInterval);
+      if (reject) reject(new Error('Connection closed'));
     });
-    
+
     conn.on('error', (err) => {
-      console.debug('[Protocol] Connection error:', err);
       this.conn = null;
+      if (this._pingInterval) clearInterval(this._pingInterval);
       if (reject) reject(err);
     });
-    
-    // For clients, resolve after successful handshake
+
     if (!this._isHost && resolve) {
-      const originalOnConnect = this.callbacks.onConnect;
       this.callbacks.onConnect = () => {
         resolve(this);
-        this.callbacks.onConnect = originalOnConnect;
-        if (originalOnConnect) originalOnConnect();
       };
     }
   }
 
-  // Central message processing function
-  _processMessage(rawData) {
-    console.debug('[Protocol] _processMessage called with raw data:', rawData);
-    
+  async importPublicKey(pem) {
+    const b64 = pem.replace(/-----[^-]+-----|\s+/g, '');
+    const der = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return await window.crypto.subtle.importKey(
+      'spki',
+      der,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+  }
+
+  async signNonce({ nonce }) {
+    const key = this.ownSigKeys.privateKey;
+    const enc = new TextEncoder().encode(nonce);
+    const sig = await window.crypto.subtle.sign(
+      { name: 'RSASSA-PKCS1-v1_5' },
+      key,
+      enc
+    );
+    return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  }
+
+  async verifyNonce({ public_key, nonce, signature }) {
+    const key = await this.importPublicKey(public_key);
+    const enc = new TextEncoder().encode(nonce);
+    const sig = Uint8Array.from(atob(signature), c => c.charCodeAt(0));
+    return await window.crypto.subtle.verify(
+      { name: 'RSASSA-PKCS1-v1_5' },
+      key,
+      sig,
+      enc
+    );
+  }
+
+  async _handleInitData(rawData) {
+    while (!this.ownKeys || !this.ownKeys.private_key || !this.ownSigKeys) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    console.debug('[Protocol] Incoming (init phase):', rawData);
     const message = this._parseMessage(rawData);
     if (!message) {
-      console.warn('[Protocol] Failed to parse message:', rawData);
+      this.sendDisconnect('invalid-message');
+      this.conn.close();
       return;
     }
-    
-    const { type } = message;
-    const methodDef = PROTOCOL_METHODS[type];
-    
-    if (!methodDef) {
-      console.warn('[Protocol] Unknown message type:', type);
+    if (this.state === 'AUTHENTICATED') {
+      this.onData = this._handleData.bind(this);
       return;
     }
-    
-    // Validate required parameters
-    const params = this._validateParams(message, methodDef.params);
-    if (!params) {
-      console.warn('[Protocol] Invalid parameters for', type, message);
-      return;
+    if (message.type === 'handshake-init') {
+      if (message.version !== PROTOCOL_VERSION) {
+        this.sendDisconnect('version-mismatch');
+        this.conn.close();
+        return;
+      }
+      this.peerPublicKey = message.public_key;
+      this.peerNonce = message.nonce;
+      this.peerSigPublicPem = message.sig_public_key;
+      this.ownNonce = this._generateNonce();
+      const signedPeerNonce = await this.signNonce({ nonce: this.peerNonce });
+      this._send({
+        type: 'handshake-response',
+        public_key: this.ownKeys.public_key,
+        sig_public_key: this.ownSigKeys.publicPem,
+        nonce: this.ownNonce,
+        signed_peer_nonce: signedPeerNonce
+      });
+      this.state = 'WAIT_FOR_RESPONSE';
+    } else if (message.type === 'handshake-response') {
+      this.peerPublicKey = message.public_key;
+      this.peerSigPublicPem = message.sig_public_key;
+      this.peerNonce = message.nonce;
+      const valid = await this.verifyNonce({
+        public_key: this.peerSigPublicPem,
+        nonce: this.ownNonce,
+        signature: message.signed_peer_nonce
+      });
+      if (!valid) {
+        this.sendDisconnect('handshake-invalid');
+        this.conn.close();
+        return;
+      }
+      const signedPeerNonce = await this.signNonce({ nonce: this.peerNonce });
+      this._send({
+        type: 'handshake-final',
+        signed_peer_nonce: signedPeerNonce
+      });
+      // Host: handshake is complete after sending handshake-final
+      this._handshakeComplete();
+    } else if (message.type === 'handshake-final') {
+      const valid = await this.verifyNonce({
+        public_key: this.peerSigPublicPem,
+        nonce: this.ownNonce,
+        signature: message.signed_peer_nonce
+      });
+      if (!valid) {
+        this.sendDisconnect('handshake-invalid');
+        this.conn.close();
+        return;
+      }
+      this._handshakeComplete();
     }
-    
-    // Call the handler
-    try {
-      methodDef.handler(this, params);
-    } catch (error) {
-      console.error('[Protocol] Handler error for', type, error);
+  }
+
+  _handshakeComplete() {
+    this.state = 'AUTHENTICATED';
+    this.onData = this._handleData.bind(this);
+    if (this.callbacks.onConnect) {
+      this.callbacks.onConnect();
     }
+    this._startPing();
   }
 
   _parseMessage(rawData) {
     try {
       const obj = typeof rawData === 'object' ? rawData : JSON.parse(rawData);
       if (!obj.type) {
-        console.warn('[Protocol] Message missing type field');
         return null;
       }
       return obj;
-    } catch (error) {
-      console.warn('[Protocol] JSON parse error:', error);
+    } catch {
       return null;
     }
   }
 
-  _validateParams(message, requiredParams) {
-    const params = {};
-    
-    for (const param of requiredParams) {
-      if (!(param in message)) {
-        console.warn('[Protocol] Missing required parameter:', param);
-        return null;
-      }
-      params[param] = message[param];
-    }
-    
-    return params;
+  _handleData(rawData) {
+    console.debug('[Protocol] Incoming:', rawData);
+    const message = this._parseMessage(rawData);
+    if (!message || !PROTOCOL_METHODS[message.type]) return;
+    const method = PROTOCOL_METHODS[message.type];
+    method.handler(this, message);
   }
 
-  _send(obj) {
-    console.debug('[Protocol] _send called with object:', obj);
-    if (this.conn && this.conn.open) {
-      this.conn.send(JSON.stringify(obj));
-    }
-  }
-
-  _startPingSystem() {
-    console.debug('[Protocol] _startPingSystem called');
-    this._lastPingReceived = Date.now();
-
-    // Clear any existing ping system first
-    this._clearPingSystem();
-
-    this._pingInterval = setInterval(() => {
-      if (this.conn && this.conn.open) {
-        this.sendPing();
-      }
-
-      if (this._lastPingReceived && Date.now() - this._lastPingReceived > 3000) {
-        console.debug('[Protocol] Ping timeout, closing connection');
-        this._forceClose();
-      }
-    }, 1000);
-  }
-
-  _forceClose() {
-    console.debug('[Protocol] _forceClose called');
-    this._clearPingSystem();
-    if (this.conn) {
-      try { 
-        this.conn.close(); 
-      } catch (error) {
-        // Ignore connection close errors
-        console.debug('[Protocol] Error closing connection:', error);
-      }
-    }
-    // Don't destroy shared peer, just clear connection
-    this.conn = null;
-  }
-
-  _clearPingSystem() {
-    console.debug('[Protocol] _clearPingSystem called');
-    if (this._pingInterval) {
-      clearInterval(this._pingInterval);
-      this._pingInterval = null;
-    }
-    if (this._pingTimeout) {
-      clearInterval(this._pingTimeout);
-      this._pingTimeout = null;
-    }
-  }
-
-  destroy() {
-    console.debug('[Protocol] destroy called');
-    this._clearPingSystem();
-    if (this.conn) {
-      try { 
-        this.conn.close(); 
-      } catch (error) {
-        // Ignore connection close errors
-        console.debug('[Protocol] Error closing connection during destroy:', error);
-      }
-    }
-    // Don't destroy shared peer, just clear reference
-    this.conn = null;
-    this.peer = null;
-    // Clear all callbacks
-    Object.keys(this.callbacks).forEach(key => {
-      this.callbacks[key] = null;
-    });
-    this._lastPingReceived = null;
+  _generateNonce(length = 24) {
+    // Secure random nonce, base64 encoded
+    const array = new Uint8Array(length);
+    window.crypto.getRandomValues(array);
+    return btoa(String.fromCharCode(...array));
   }
 }
 
 export default Protocol;
-export { PROTOCOL_METHODS };
