@@ -10,13 +10,14 @@ const PROTOCOL_VERSION = '1.2.1';
 
 /**
  * Connection flow:
- * 1. Both peers generate E2EE key pairs on initialization.
+ * 1. Both peers generate E2EE key pairs and signature key pairs on initialization.
  * 2. Host waits for incoming connection, client connects to host.
- * 3. Host sends 'handshake-init' (version, public_key, nonce) after connection is open.
- * 4. Client receives 'handshake-init', stores host's public key and nonce, generates its own nonce, and replies with 'handshake-response' (public_key, nonce, signed_peer_nonce).
+ * 3. Host sends 'handshake-init' (version, public_key, sig_public_key, nonce) after connection is open.
+ * 4. Client receives 'handshake-init', stores host's public key and nonce, generates its own nonce, and replies with 'handshake-response' (public_key, sig_public_key, nonce, signed_peer_nonce).
  * 5. Host receives 'handshake-response', verifies signature, stores client's public key and nonce, replies with 'handshake-final' (signed_peer_nonce).
  * 6. Client receives 'handshake-final', verifies signature. If valid, both peers are authenticated and switch to normal message handling.
- * 7. Only after authentication, protocol methods are available for normal communication.
+ * 7. After authentication, protocol methods are available for normal communication (message, ping, disconnect). Ping system starts automatically.
+ * 8. If no ping is received for 2 seconds, the connection is considered lost and both peers disconnect gracefully.
  *
  * Available protocol methods after authentication:
  * - message: { text, timestamp } — Send a (possibly encrypted) chat message.
@@ -169,13 +170,54 @@ class Protocol {
 
   static connect(hostId) {
     return new Promise((resolve, reject) => {
+      let didFinish = false;
+      let timeoutId;
       createSharedPair().then(peer => {
         const proto = new Protocol(peer);
         proto._isHost = false;
         proto.state = 'WAIT_FOR_HANDSHAKE';
         const conn = peer.connect(hostId);
-        proto._handleConnection(conn, resolve, reject);
-      }).catch(reject);
+        // Timeout after 5 seconds
+        timeoutId = setTimeout(() => {
+          if (!didFinish) {
+            didFinish = true;
+            try {
+              conn && conn.close();
+            }
+            catch (e) {
+              console.error('Error closing connection after timeout:', e);
+            }
+            const err = new Error('Connection could not be established (timeout).');
+            console.error(err);
+            reject(err);
+          }
+        }, 5000);
+        conn.on('error', (err) => {
+          if (!didFinish) {
+            didFinish = true;
+            clearTimeout(timeoutId);
+            console.error('PeerJS connection error:', err);
+            reject(err || new Error('Connection error.'));
+          }
+        });
+        proto._handleConnection(conn, (protoInstance) => {
+          if (!didFinish) {
+            didFinish = true;
+            clearTimeout(timeoutId);
+            resolve(protoInstance);
+          }
+        }, (err) => {
+          if (!didFinish) {
+            didFinish = true;
+            clearTimeout(timeoutId);
+            console.error('Connection failed:', err);
+            reject(err || new Error('Connection failed.'));
+          }
+        });
+      }).catch(err => {
+        console.error('Peer creation failed:', err);
+        reject(err);
+      });
     });
   }
 
@@ -191,7 +233,7 @@ class Protocol {
       if (this.conn && this.conn.open) {
         this._send({ type: 'ping', timestamp: Date.now() });
       }
-      // If no ping received for 15 seconds, disconnect
+      // If no ping received for 2 seconds, disconnect
       if (Date.now() - this._lastPingReceived > 2000) {
         this.sendDisconnect('ping-timeout');
         this.conn && this.conn.close();

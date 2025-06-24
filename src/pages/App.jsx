@@ -33,7 +33,7 @@ export default function App() {
       setNewProtocol(proto);
       navigate('/chat');
     }).catch(err => {
-      console.error('[App] Protocol.connect error:', err);
+      //console.error('[App] Protocol.connect error:', err); // Allready logged in Protocol.connect
       setError('Connection failed: ' + err.message);
       setConnecting(false);
     });
