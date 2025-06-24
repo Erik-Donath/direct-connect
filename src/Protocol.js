@@ -32,12 +32,8 @@ const PROTOCOL_METHODS = {
   disconnect: {
     params: ['reason'],
     handler: (protocol, params) => {
-      if (protocol.callbacks.onDisconnect) {
-        protocol.callbacks.onDisconnect(params.reason);
-      }
-      if (protocol.conn) {
-        protocol.conn.close();
-      }
+      if (protocol.callbacks.onDisconnect) protocol.callbacks.onDisconnect(params.reason);
+      if (protocol.conn) protocol.conn.close();
     }
   },
   message: {
@@ -54,18 +50,14 @@ const PROTOCOL_METHODS = {
           decryptedText = '[Decryption failed]';
         }
       }
-      if (protocol.callbacks.onMessage) {
-        protocol.callbacks.onMessage(decryptedText, params.timestamp);
-      }
+      if (protocol.callbacks.onMessage) protocol.callbacks.onMessage(decryptedText, params.timestamp);
     }
   },
   ping: {
     params: ['timestamp'],
     handler: (protocol, params) => {
       protocol._lastPingReceived = Date.now();
-      if (protocol.callbacks.onPing) {
-        protocol.callbacks.onPing(params.timestamp);
-      }
+      if (protocol.callbacks.onPing) protocol.callbacks.onPing(params.timestamp);
     }
   }
 };
@@ -92,26 +84,21 @@ class Protocol {
   constructor(peer) {
     this.peer = peer;
     this.conn = null;
-
     this.ownKeys = null;
     this.peerPublicKey = null;
     this.ownSigKeys = null;
     this.peerSigPublicPem = null;
-
     this._isHost = false;
-    this.state = 'INIT'; // INIT, WAIT_FOR_HANDSHAKE, WAIT_FOR_RESPONSE, WAIT_FOR_FINAL, AUTHENTICATED, CLOSED
+    this.state = 'INIT';
     this.ownNonce = null;
     this.peerNonce = null;
-
     this.callbacks = {
       onConnect: null,
       onDisconnect: null,
       onMessage: null,
       onPing: null
     };
-
     this.onData = this._handleInitData.bind(this);
-
     this._generateKeys();
     this._generateSigKeys();
   }
@@ -161,12 +148,7 @@ class Protocol {
         timeoutId = setTimeout(() => {
           if (!didFinish) {
             didFinish = true;
-            try {
-              conn && conn.close();
-            }
-            catch (e) {
-              console.error('Error closing connection after timeout:', e);
-            }
+            try { conn && conn.close(); } catch (e) { console.error('Error closing connection after timeout:', e); }
             const err = new Error('Connection could not be established (timeout).');
             console.error(err);
             reject(err);
@@ -213,7 +195,6 @@ class Protocol {
       if (this.conn && this.conn.open) {
         this._send({ type: 'ping', timestamp: Date.now() });
       }
-      // If no ping received for 2 seconds, disconnect
       if (Date.now() - this._lastPingReceived > 2000) {
         this.sendDisconnect('ping-timeout');
         this.conn && this.conn.close();
@@ -253,11 +234,7 @@ class Protocol {
 
   _handleConnection(conn, resolve, reject = null) {
     this.conn = conn;
-
-    conn.on('data', (data) => {
-      this.onData(data);
-    });
-
+    conn.on('data', (data) => { this.onData(data); });
     conn.on('open', async () => {
       if (this._isHost) {
         while (!this.ownKeys || !this.ownSigKeys) {
@@ -274,29 +251,22 @@ class Protocol {
       }
       if (!this._isHost && reject) {
         setTimeout(() => {
-          if (this.state !== 'AUTHENTICATED') {
-            reject(new Error('Handshake timeout'));
-          }
+          if (this.state !== 'AUTHENTICATED') reject(new Error('Handshake timeout'));
         }, 4000);
       }
     });
-
     conn.on('close', () => {
       this.conn = null;
       if (this._pingInterval) clearInterval(this._pingInterval);
       if (reject) reject(new Error('Connection closed'));
     });
-
     conn.on('error', (err) => {
       this.conn = null;
       if (this._pingInterval) clearInterval(this._pingInterval);
       if (reject) reject(err);
     });
-
     if (!this._isHost && resolve) {
-      this.callbacks.onConnect = () => {
-        resolve(this);
-      };
+      this.callbacks.onConnect = () => { resolve(this); };
     }
   }
 
@@ -388,7 +358,6 @@ class Protocol {
         type: 'handshake-final',
         signed_peer_nonce: signedPeerNonce
       });
-      // Host: handshake is complete after sending handshake-final
       this._handshakeComplete();
     } else if (message.type === 'handshake-final') {
       const valid = await this.verifyNonce({
@@ -408,18 +377,14 @@ class Protocol {
   _handshakeComplete() {
     this.state = 'AUTHENTICATED';
     this.onData = this._handleData.bind(this);
-    if (this.callbacks.onConnect) {
-      this.callbacks.onConnect();
-    }
+    if (this.callbacks.onConnect) this.callbacks.onConnect();
     this._startPing();
   }
 
   _parseMessage(rawData) {
     try {
       const obj = typeof rawData === 'object' ? rawData : JSON.parse(rawData);
-      if (!obj.type) {
-        return null;
-      }
+      if (!obj.type) return null;
       return obj;
     } catch {
       return null;

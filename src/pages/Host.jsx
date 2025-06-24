@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProtocolContext } from '../ProtocolProviderUtils.js';
-import Protocol from '../Protocol';
-import './HostSetup.css';
+import { useProtocolContext } from '../ProtocolContext.js';
+import Protocol from '../Protocol.js';
+import './Host.css';
 
-export default function HostSetup() {
+export default function Host() {
   // Debug statement removed: Logging rendering in React components is not useful.
   const navigate = useNavigate();
   const { protocol, setNewProtocol } = useProtocolContext();
@@ -23,7 +23,7 @@ export default function HostSetup() {
         setNewProtocol(proto);
         setInitializing(false);
       }).catch(err => {
-        console.error('[HostSetup] Protocol.host error:', err);
+        console.error('[Host] Protocol.host error:', err);
         setError('Failed to initialize host: ' + err.message);
         setInitializing(false);
       });
@@ -47,7 +47,7 @@ export default function HostSetup() {
 
   if (error) {
     return (
-      <div className="host-setup-container">
+      <div className="host-container">
         <h2>Host Setup Error</h2>
         <div style={{ color: '#d63031', textAlign: 'center', marginBottom: 16 }}>
           {error}
@@ -64,7 +64,7 @@ export default function HostSetup() {
 
   if (initializing) {
     return (
-      <div className="host-setup-container">
+      <div className="host-container">
         <h2>Initializing Host...</h2>
         <div className="host-waiting-status">
           Setting up your host connection...
@@ -74,7 +74,7 @@ export default function HostSetup() {
   }
 
   return (
-    <div className="host-setup-container">
+    <div className="host-container">
       <h2>Your Host ID</h2>
       <div className="host-id-row">
         <span className="host-id">{peerId || '...'}</span>

@@ -1,4 +1,4 @@
-.host-setup-container {
+.host-container {
   max-width: 340px;
   margin: 36px auto 0 auto;
   background: none;
@@ -10,7 +10,7 @@
   align-items: center;
 }
 
-.host-setup-container h2 {
+.host-container h2 {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 12px;
@@ -69,7 +69,7 @@
 }
 
 @media (max-width: 600px) {
-  .host-setup-container {
+  .host-container {
     max-width: 98vw;
     padding: 0 2vw;
   }

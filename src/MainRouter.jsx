@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './pages/App';
-import ChatWindow from './pages/ChatWindow';
-import HostSetup from './pages/HostSetup';
+import Chat from './pages/Chat';
+import Host from './pages/Host';
 import MainLayout from './components/MainLayout';
 
 export default function MainRouter() {
@@ -11,8 +11,8 @@ export default function MainRouter() {
       <Routes>
         <Route element={<MainLayout title="Direct Connect" />}> 
           <Route path="/" element={<App />} />
-          <Route path="/host" element={<HostSetup />} />
-          <Route path="/chat" element={<ChatWindow />} />
+          <Route path="/host" element={<Host />} />
+          <Route path="/chat" element={<Chat />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -12,7 +12,7 @@ export default function Message({ text, sender, timestamp }) {
   };
 
   return (
-    <div className={`message ${sender === 'You' ? 'message-self' : 'message-peer'}`}>
+    <div className={`message ${sender === 'self' ? 'message-self' : 'message-peer'}`}>
       <div className="message-content">
         <span className="message-text">{text}</span>
         <span className="message-timestamp">{formatTime(timestamp)}</span>

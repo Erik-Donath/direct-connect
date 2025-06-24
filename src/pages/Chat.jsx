@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProtocolContext } from '../ProtocolProviderUtils.js';
-import Message from '../components/Message';
-import './ChatWindow.css';
+import { useProtocolContext } from '../ProtocolContext.js';
+import Message from '../components/Message.jsx';
+import './Chat.css';
 
-export default function ChatWindow() {
+export default function Chat() {
   // Debug statement removed: Logging rendering in React components is not useful.
   const navigate = useNavigate();
   const { protocol } = useProtocolContext();
@@ -35,7 +35,7 @@ export default function ChatWindow() {
     if (!protocol || !isOpen) return;
     const onMsg = (text, timestamp) => {
       setMessages(msgs => [...msgs, { 
-        sender: 'Peer', 
+        sender: 'peer', 
         text, 
         timestamp: timestamp || Date.now() 
       }]);
@@ -63,7 +63,7 @@ export default function ChatWindow() {
     const timestamp = Date.now();
     await protocol.sendMessage(input);
     setMessages(msgs => [...msgs, { 
-      sender: 'You', 
+      sender: 'self', 
       text: input, 
       timestamp 
     }]);
@@ -74,7 +74,7 @@ export default function ChatWindow() {
 
   return (
     <>
-      <div className="chatwindow-messages">
+      <div className="chat-messages">
         {messages.map((msg, idx) => (
           <Message
             key={idx}
@@ -85,9 +85,9 @@ export default function ChatWindow() {
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="chatwindow-input-row">
+      <div className="chat-input-row">
         <input
-          className="chatwindow-input"
+          className="chat-input"
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -96,7 +96,7 @@ export default function ChatWindow() {
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
         />
         <button
-          className="chatwindow-send"
+          className="chat-send"
           onClick={sendMessage}
           disabled={!protocol || !input.trim() || disconnected || !isOpen}
         >
@@ -104,9 +104,9 @@ export default function ChatWindow() {
         </button>
       </div>
       {disconnected && (
-        <div className="chatwindow-back-center">
+        <div className="chat-back-center">
           <button
-            className="chatwindow-send"
+            className="chat-send"
             style={{ marginTop: 16 }}
             onClick={() => navigate('/')}
           >
