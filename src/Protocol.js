@@ -42,7 +42,6 @@ class Connection {
     this._onOpen = null;
     this._onClose = null;
     this._onError = null;
-    this._events = [];
   }
 
   async createPeer() {
@@ -76,7 +75,6 @@ class Connection {
       if (onConnection) onConnection(conn);
     };
     this.peer.on('connection', handler);
-    this._events.push({ type: 'connection', handler });
   }
 
   connectTo(hostId, onOpen, onError) {
@@ -153,14 +151,10 @@ class Connection {
   destroy() {
     this.close();
     if (this.peer) {
-      this._events.forEach(({ type, handler }) => {
-        this.peer.off(type, handler);
-      });
       this.peer.removeAllListeners();
       try { this.peer.destroy(); } catch (e) { /* intentionally ignored */ }
       this.peer = null;
     }
-    this._events = [];
     console.debug('[Connection] Peer destroyed.');
   }
 }
