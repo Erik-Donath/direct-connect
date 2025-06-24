@@ -1,5 +1,6 @@
 import Peer from 'peerjs';
 import E2EE from '@chatereum/react-e2ee';
+import { generateKeyPair, exportPublicKeyToPem, exportPrivateKeyToPem, generateNonce } from './E2EE';
 
 // Protocol versions:
 // 1.0.0 - Initial version (no encryption, basic message handling)
@@ -120,34 +121,13 @@ class Protocol {
   }
 
   async _generateSigKeys() {
-    const keyPair = await window.crypto.subtle.generateKey(
-      {
-        name: 'RSASSA-PKCS1-v1_5',
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: 'SHA-256',
-      },
-      true,
-      ['sign', 'verify']
-    );
+    const keyPair = await generateKeyPair();
     this.ownSigKeys = {
       publicKey: keyPair.publicKey,
       privateKey: keyPair.privateKey,
-      publicPem: await this._exportPublicKeyToPem(keyPair.publicKey),
-      privatePem: await this._exportPrivateKeyToPem(keyPair.privateKey)
+      publicPem: await exportPublicKeyToPem(keyPair.publicKey),
+      privatePem: await exportPrivateKeyToPem(keyPair.privateKey)
     };
-  }
-
-  async _exportPublicKeyToPem(key) {
-    const spki = await window.crypto.subtle.exportKey('spki', key);
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(spki)));
-    return '-----BEGIN PUBLIC KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PUBLIC KEY-----';
-  }
-
-  async _exportPrivateKeyToPem(key) {
-    const pkcs8 = await window.crypto.subtle.exportKey('pkcs8', key);
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
-    return '-----BEGIN PRIVATE KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PRIVATE KEY-----';
   }
 
   static host() {
@@ -455,10 +435,7 @@ class Protocol {
   }
 
   _generateNonce(length = 24) {
-    // Secure random nonce, base64 encoded
-    const array = new Uint8Array(length);
-    window.crypto.getRandomValues(array);
-    return btoa(String.fromCharCode(...array));
+    return generateNonce(length);
   }
 }
 
