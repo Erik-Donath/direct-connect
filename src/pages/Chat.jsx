@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProtocolContext } from '../ProtocolContext.js';
 import Message from '../components/Message.jsx';
+import TypingIndicator from '../components/TypingIndicator.jsx';
 import './Chat.css';
 
 export default function Chat() {
@@ -11,6 +12,8 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [disconnected, setDisconnected] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [peerTyping, setPeerTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -46,7 +49,11 @@ export default function Chat() {
       console.debug('[Chat] Received message:', text);
     };
     protocol.onMessage(onMsg);
-    return () => protocol.onMessage(null);
+    protocol.onTypingState(handlePeerTypingState);
+    return () => {
+      protocol.onMessage(null);
+      protocol.onTypingState(null);
+    }
   }, [protocol, isOpen]);
 
   useEffect(() => {
@@ -65,6 +72,24 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handlePeerTypingState = (typing) => {
+    setPeerTyping(typing);
+  };
+
+  const sendTypingState = async(typing) => {
+    if (!protocol || !protocol.isReady()) return;
+    protocol.sendTypingState(typing);
+  }
+
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    const isNowTyping = e.target.value.length > 0;
+    if (isNowTyping !== isTyping) {
+      setIsTyping(isNowTyping);
+      sendTypingState(isNowTyping);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim()) {
@@ -90,10 +115,12 @@ export default function Chat() {
       setMessages(msgs => [...msgs, { 
         sender: 'self', 
         text: input, 
-        timestamp 
+        timestamp
       }]);
       console.debug('[Chat] Sent message:', input);
       setInput('');
+      setIsTyping(false);
+      sendTypingState(false);
     } catch (err) {
       console.error('[Chat] Failed to send message:', err);
     }
@@ -112,6 +139,8 @@ export default function Chat() {
             timestamp={msg.timestamp}
           />
         ))}
+        {/* Schreib-Animation anzeigen, wenn Peer tippt */}
+        {peerTyping && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input-row">
@@ -119,7 +148,7 @@ export default function Chat() {
           className="chat-input"
           type="text"
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={handleInputChange}
           placeholder={disconnected ? 'Connection closed' : 'Type your message...'}
           disabled={!protocol || disconnected || !isOpen}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}

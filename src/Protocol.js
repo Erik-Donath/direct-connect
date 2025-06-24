@@ -10,8 +10,9 @@ import { generateKeyPair, exportPublicKeyToPem, exportPrivateKeyToPem, generateN
  * 1.2.1 - Added signature verification for handshake, improved error handling, and nonce management
  * 1.2.2 - Improved connection flow by implementing Conection Class and refactoring Protocol methods
  * 1.2.3 - Added check for connection state before sending handshake messages, improved error handling, and cleaned up code structure
+ * 1.3.0 - Added typing indicator support
  */
-const PROTOCOL_VERSION = '1.2.3';
+const PROTOCOL_VERSION = '1.3.0';
 
 /**
  * Connection flow:
@@ -30,6 +31,7 @@ const PROTOCOL_VERSION = '1.2.3';
  * - message: { text, timestamp } — Send a (possibly encrypted) chat message.
  * - ping: { timestamp } — Ping for connection health.
  * - disconnect: { reason } — Graceful disconnect with reason.
+ * - state { typing } - Notify the other peer about typing state
  */
 
 class Connection {
@@ -186,6 +188,14 @@ const PROTOCOL_METHODS = {
       protocol._lastPingReceived = Date.now();
       if (protocol.callbacks.onPing) protocol.callbacks.onPing(params.timestamp);
     }
+  },
+  typing_state: {
+    params: ['typing'],
+    handler: (protocol, params) => {
+      if (protocol.callbacks.onTypingState) {
+        protocol.callbacks.onTypingState(params.typing);
+      }
+    }
   }
 };
 
@@ -206,7 +216,8 @@ class Protocol {
       onConnect: null,
       onDisconnect: null,
       onMessage: null,
-      onPing: null
+      onPing: null,
+      onTypingState: null
     };
     this._pingInterval = null;
     this._lastPingReceived = null;
@@ -318,6 +329,7 @@ class Protocol {
   onDisconnect(callback) { this.callbacks.onDisconnect = callback; }
   onMessage(callback) { this.callbacks.onMessage = callback; }
   onPing(callback) { this.callbacks.onPing = callback; }
+  onTypingState(callback) { this.callbacks.onTypingState = callback; }
 
   // Returns true if protocol, connection and connection is open
   isReady() {
@@ -366,6 +378,13 @@ class Protocol {
       }
       this._send({ type: 'message', text: messageText, timestamp });
       console.debug('[Protocol] Message sent:', text);
+    }
+  }
+
+  async sendTypingState(typing) {
+    if (this.isConnectionOpen() && this.state === 'AUTHENTICATED') {
+      this._send({ type: 'typing_state', typing: typing });
+      console.debug('[Protocol] Typing state sent:', typing ? 'typing' : 'not typing');
     }
   }
 
