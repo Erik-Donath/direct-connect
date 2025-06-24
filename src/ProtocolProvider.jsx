@@ -7,18 +7,23 @@ function ProtocolProvider({ children }) {
   const [protocol, setProtocol] = useState(null);
 
   const destroyProtocol = () => {
-    protocolRef.current?.destroy();
-    protocolRef.current = null;
-    setProtocol(null);
+    try {
+      protocolRef.current?.destroy();
+      protocolRef.current = null;
+      setProtocol(null);
+      console.debug('[ProtocolProvider] Protocol destroyed.');
+    } catch (err) {
+      console.error('[ProtocolProvider] Error destroying protocol:', err);
+    }
   };
 
   const setNewProtocol = (proto) => {
-    // Only destroy if a different protocol is being set
     if (protocolRef.current && protocolRef.current !== proto) {
       destroyProtocol();
     }
     protocolRef.current = proto;
     setProtocol(proto);
+    console.debug('[ProtocolProvider] New protocol set.');
   };
 
   return (

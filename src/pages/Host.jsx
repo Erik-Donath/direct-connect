@@ -4,10 +4,19 @@ import { useProtocolContext } from '../ProtocolContext.js';
 import Protocol from '../Protocol.js';
 import './Host.css';
 
+function copyToClipboard(text, onSuccess, onError) {
+  if (!text) return;
+  navigator.clipboard.writeText(text)
+    .then(onSuccess)
+    .catch(err => {
+      console.error('[Host] Failed to copy chat link:', err);
+      if (onError) onError(err);
+    });
+}
+
 export default function Host() {
-  // Debug statement removed: Logging rendering in React components is not useful.
   const navigate = useNavigate();
-  const { protocol, setNewProtocol } = useProtocolContext();
+  const { setNewProtocol } = useProtocolContext();
   const [peerId, setPeerId] = useState('');
   const [copied, setCopied] = useState(false);
   const [waiting, setWaiting] = useState(true);
@@ -15,37 +24,32 @@ export default function Host() {
   const [initializing, setInitializing] = useState(false);
 
   useEffect(() => {
-    // Check if a pair is already established or if a new one has to be created
-    if (!protocol) {
-      setInitializing(true);
-      setError('');
-      Protocol.host().then(proto => {
-        setNewProtocol(proto);
-        setInitializing(false);
-      }).catch(err => {
-        console.error('[Host] Protocol.host error:', err);
-        setError('Failed to initialize host: ' + err.message);
-        setInitializing(false);
+    setInitializing(true);
+    setError('');
+    setWaiting(true);
+    Protocol.host().then(proto => {
+      setNewProtocol(proto);
+      setInitializing(false);
+      console.debug('[Host] Host protocol initialized.');
+      proto.onConnect(() => {
+        setWaiting(false);
+        console.debug('[Host] Peer connected, navigating to /chat.');
+        navigate('/chat', { replace: true });
       });
-      return;
-    }
-
-    // Protocol exists, check if it's properly set up
-    if (!protocol.peer) {
-      return;
-    }
-
-    setPeerId(protocol.peer.id || '');
-    protocol.onConnect(() => {
-      setWaiting(false);
-      navigate('/chat', { replace: true });
+      setPeerId(proto.getPeerId());
+      console.debug('[Host] PeerId set:', proto.getPeerId());
+    }).catch(err => {
+      console.error('[Host] Protocol.host error:', err);
+      setError('Failed to initialize host: ' + err.message);
+      setInitializing(false);
     });
-  }, [protocol, navigate, setNewProtocol]);
+  }, [navigate]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   const chatLink = peerId ? `${baseUrl}?host-id=${peerId}` : '';
 
   if (error) {
+    console.error('[Host] Error state:', error);
     return (
       <div className="host-container">
         <h2>Host Setup Error</h2>
@@ -63,6 +67,7 @@ export default function Host() {
   }
 
   if (initializing) {
+    console.debug('[Host] Initializing host...');
     return (
       <div className="host-container">
         <h2>Initializing Host...</h2>
@@ -82,9 +87,15 @@ export default function Host() {
           className="copy-hostid-btn"
           onClick={() => {
             if (chatLink) {
-              navigator.clipboard.writeText(chatLink);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1200);
+              copyToClipboard(
+                chatLink,
+                () => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1200);
+                  console.debug('[Host] Chat link copied to clipboard:', chatLink);
+                },
+                () => setCopied(false)
+              );
             }
           }}
           style={{ marginLeft: 12 }}

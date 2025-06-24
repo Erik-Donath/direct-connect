@@ -5,7 +5,6 @@ import Message from '../components/Message.jsx';
 import './Chat.css';
 
 export default function Chat() {
-  // Debug statement removed: Logging rendering in React components is not useful.
   const navigate = useNavigate();
   const { protocol } = useProtocolContext();
   const [messages, setMessages] = useState([]);
@@ -15,20 +14,25 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!protocol || !protocol.conn) {
+    if (!protocol || !protocol.isReady()) {
+      console.warn('[Chat] No protocol or connection found, redirecting to home.');
       navigate('/', { replace: true });
     }
   }, [protocol, navigate]);
 
   useEffect(() => {
-    if (!protocol || !protocol.conn) return;
-    if (protocol.conn.open) {
+    if (!protocol || !protocol.isReady()) return;
+    if (protocol.connection.conn.open) {
       setIsOpen(true);
+      console.debug('[Chat] Connection is open.');
       return;
     }
-    const handleOpen = () => setIsOpen(true);
-    protocol.conn.on('open', handleOpen);
-    return () => protocol.conn.off('open', handleOpen);
+    const handleOpen = () => {
+      setIsOpen(true);
+      console.debug('[Chat] Connection opened.');
+    };
+    protocol.connection.conn.on('open', handleOpen);
+    return () => protocol.connection.conn.off('open', handleOpen);
   }, [protocol]);
 
   useEffect(() => {
@@ -39,18 +43,22 @@ export default function Chat() {
         text, 
         timestamp: timestamp || Date.now() 
       }]);
+      console.debug('[Chat] Received message:', text);
     };
     protocol.onMessage(onMsg);
     return () => protocol.onMessage(null);
   }, [protocol, isOpen]);
 
   useEffect(() => {
-    if (!protocol || !protocol.conn) return;
-    const handleClose = () => setDisconnected(true);
-    protocol.conn.on('close', handleClose);
+    if (!protocol || !protocol.isReady()) return;
+    const handleClose = () => {
+      setDisconnected(true);
+      console.warn('[Chat] Connection closed.');
+    };
+    protocol.connection.conn.on('close', handleClose);
     return () => {
-      if(protocol && protocol.conn)
-        protocol.conn.off('close', handleClose);
+      if(protocol && protocol.isReady())
+        protocol.connection.conn.off('close', handleClose);
     }
   }, [protocol]);
 
@@ -59,18 +67,39 @@ export default function Chat() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || !protocol || !isOpen) return;
+    if (!input.trim()) {
+      console.warn('[Chat] Tried to send empty message.');
+      return;
+    }
+    if (!protocol) {
+      console.error('[Chat] No protocol instance for sending message.');
+      return;
+    }
+    if (disconnected) {
+      console.warn('[Chat] Tried to send message while disconnected.');
+      return;
+    }
+    if (!isOpen) {
+      console.warn('[Chat] Tried to send message while connection not open.');
+      return;
+    }
+    
     const timestamp = Date.now();
-    await protocol.sendMessage(input);
-    setMessages(msgs => [...msgs, { 
-      sender: 'self', 
-      text: input, 
-      timestamp 
-    }]);
-    setInput('');
+    try {
+      await protocol.sendMessage(input);
+      setMessages(msgs => [...msgs, { 
+        sender: 'self', 
+        text: input, 
+        timestamp 
+      }]);
+      console.debug('[Chat] Sent message:', input);
+      setInput('');
+    } catch (err) {
+      console.error('[Chat] Failed to send message:', err);
+    }
   };
 
-  if (!protocol || !isOpen) return null;
+  if (!protocol || (!protocol.isReady() && !disconnected)) return null;
 
   return (
     <>

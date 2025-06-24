@@ -17,8 +17,8 @@ export default function App() {
     if (hostIdParam) {
       setHostId(hostIdParam);
       setTimeout(() => handleConnect(hostIdParam), 0);
+      console.debug('[App] Auto-connecting with hostId from URL:', hostIdParam);
     }
-    // eslint-disable-next-line
   }, []);
 
   const handleHost = () => {
@@ -28,14 +28,27 @@ export default function App() {
   const handleConnect = (idOverride) => {
     setError('');
     setConnecting(true);
-    destroyProtocol();
-    Protocol.connect(idOverride || hostId).then(proto => {
+    try {
+      destroyProtocol();
+    } catch (err) {
+      console.warn('[App] Error destroying previous protocol:', err);
+    }
+    const targetId = idOverride || hostId;
+    if (!targetId) {
+      setError('No Host ID provided.');
+      setConnecting(false);
+      console.warn('[App] No Host ID provided for connection.');
+      return;
+    }
+    console.debug('[App] Attempting connection to hostId:', targetId);
+    Protocol.connect(targetId).then(proto => {
       setNewProtocol(proto);
+      console.debug('[App] Connection established, navigating to /chat');
       navigate('/chat');
     }).catch(err => {
-      //console.error('[App] Protocol.connect error:', err); // Allready logged in Protocol.connect
       setError('Connection failed: ' + err.message);
       setConnecting(false);
+      console.error('[App] Connection failed:', err);
     });
   };
 

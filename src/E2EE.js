@@ -15,15 +15,25 @@ export async function generateKeyPair() {
 }
 
 export async function exportPublicKeyToPem(key) {
-  const spki = await window.crypto.subtle.exportKey('spki', key);
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(spki)));
-  return '-----BEGIN PUBLIC KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PUBLIC KEY-----';
+  try {
+    const spki = await window.crypto.subtle.exportKey('spki', key);
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(spki)));
+    return '-----BEGIN PUBLIC KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PUBLIC KEY-----';
+  } catch (err) {
+    console.error('[E2EE] Failed to export public key:', err);
+    throw err;
+  }
 }
 
 export async function exportPrivateKeyToPem(key) {
-  const pkcs8 = await window.crypto.subtle.exportKey('pkcs8', key);
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
-  return '-----BEGIN PRIVATE KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PRIVATE KEY-----';
+  try {
+    const pkcs8 = await window.crypto.subtle.exportKey('pkcs8', key);
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
+    return '-----BEGIN PRIVATE KEY-----\n' + b64.match(/.{1,64}/g).join('\n') + '\n-----END PRIVATE KEY-----';
+  } catch (err) {
+    console.error('[E2EE] Failed to export private key:', err);
+    throw err;
+  }
 }
 
 export function generateNonce(length = 24) {
