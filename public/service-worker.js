@@ -4,15 +4,20 @@
 
 const CACHE_NAME = "direct-connect-cache-dev"; // Will be set overwritten by github action (deploy.yml)
 const URLS_TO_CACHE = [
-  "/index.html",
-  "/icon.svg",
-  "/manifest.json"
+  ".",
+  "index.html",
+  "icon.svg",
+  "manifest.json"
 ];
 
 // On install: cache app shell
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS_TO_CACHE))
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(URLS_TO_CACHE).catch((err) => {
+        console.error("[Service Worker] cache.addAll failed:", err);
+      })
+    )
   );
   self.skipWaiting();
 });
