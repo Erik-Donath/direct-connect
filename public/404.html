@@ -66,9 +66,9 @@
       }
 
       const currentPath = normalizePath(location.pathname);
+      const base = currentPath.slice(0, currentPath.lastIndexOf('/') + 1);
 
-      if (allowedRedirects.includes(currentPath)) {
-        const base = currentPath.slice(0, currentPath.lastIndexOf('/') + 1);
+      if (allowedRedirects.includes(base)) {
         const path = currentPath.slice(base.length) + location.search + location.hash;
         const newUrl = base + '#?redirected&path=' + encodeURIComponent(path);
         document.getElementById('redirect-info').textContent =
