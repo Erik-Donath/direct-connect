@@ -4,11 +4,9 @@
 
 const CACHE_NAME = "direct-connect-cache-dev"; // Will be set overwritten by github action (deploy.yml)
 const URLS_TO_CACHE = [
-  ".",
-  "index.html",
-  "404.html",
-  "icon.svg",
-  "manifest.json"
+  "/index.html",
+  "/icon.svg",
+  "/manifest.json"
 ];
 
 // On install: cache app shell
