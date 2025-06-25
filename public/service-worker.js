@@ -33,13 +33,18 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Caching
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
+  // Exclude dev tools, websockets, and PeerJS assets/endpoints
   if (
     request.url.includes('/sockjs-node') || 
     request.url.includes('/@vite/') ||
-    request.url.startsWith('ws:')
+    request.url.startsWith('ws:') ||
+    request.url.startsWith('wss:') ||
+    request.url.includes('peerjs') ||
+    request.url.includes('unpkg.com/peerjs')
   ) {
     return;
   }
