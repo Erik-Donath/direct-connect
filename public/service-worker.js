@@ -2,6 +2,8 @@
 // Modern, privacy-first peer-to-peer chat app (WebRTC, PeerJS)
 // https://github.com/Erik-Donath/direct-connect
 
+/*
+
 const CACHE_NAME = "direct-connect-cache-dev"; // Will be set overwritten by github action (deploy.yml)
 const URLS_TO_CACHE = [
   ".",
@@ -78,3 +80,5 @@ self.addEventListener("message", (event) => {
     self.skipWaiting();
   }
 });
+
+*/
