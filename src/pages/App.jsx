@@ -4,6 +4,16 @@ import Protocol from '../Protocol';
 import { useProtocolContext } from '../ProtocolContext.js';
 import './App.css';
 
+function getHostIdFromHash() {
+  const hash = window.location.hash || '';
+  const idx = hash.indexOf('?');
+  if (idx >= 0) {
+    const search = hash.substring(idx + 1);
+    return new URLSearchParams(search).get('host-id');
+  }
+  return null;
+}
+
 export default function App() {
   const [hostId, setHostId] = useState('');
   const [connecting, setConnecting] = useState(false);
@@ -41,8 +51,7 @@ export default function App() {
 
   useEffect(() => {
     if (hasAutoConnected.current) return;
-    const params = new URLSearchParams(window.location.search);
-    const hostIdParam = params.get('host-id');
+    const hostIdParam = getHostIdFromHash();
     if (hostIdParam) {
       setHostId(hostIdParam);
       setTimeout(() => handleConnect(hostIdParam), 0);

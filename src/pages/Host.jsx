@@ -47,7 +47,7 @@ export default function Host() {
   }, [navigate, setNewProtocol, peerId]);
 
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-  const chatLink = peerId ? `${baseUrl}?host-id=${peerId}` : '';
+  const chatLink = peerId ? `${baseUrl}#/?host-id=${peerId}` : '';
 
   if (error) {
     console.error('[Host] Error state:', error);
