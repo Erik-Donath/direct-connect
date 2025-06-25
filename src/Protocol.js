@@ -68,7 +68,7 @@ class Connection {
       console.debug('[Connection] Incoming connection.');
       if(this.conn) {
         console.warn('[Connection] Already connected, closing new connection.');
-        this.close();
+        try { conn.close(); } catch { /* Ignored */ }
         return;
       }
       this._setupConn(conn);
