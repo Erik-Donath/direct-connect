@@ -1,0 +1,24 @@
+{
+  "name": "Direct Connect",
+  "short_name": "Direct Connect",
+  "description": "Direct Connect is a modern, privacy-first peer-to-peer web app for instant, direct sharing and chat. No server, no registration, no data stored. Built with WebRTC (PeerJS), it enables secure, direct communication between browsers with end-to-end encryption (E2EE). This is ideal for quick, private exchanges.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#e0eafc",
+  "theme_color": "#e0eafc",
+  "scope": ".",
+  "lang": "en",
+  "dir": "ltr",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "author": "Erik Donath",
+  "categories": ["communication", "social", "productivity"],
+  "keywords": ["WebRTC", "PeerJS", "Chat", "Direct Connect", "P2P"]
+}

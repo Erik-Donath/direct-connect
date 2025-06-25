@@ -1,18 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Redirecting...</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Direct Connect is a modern, privacy-first peer-to-peer web app for instant, direct sharing and chat. No server, no registration, no data stored. Built with WebRTC (PeerJS), it enables secure, direct communication between browsers with end-to-end encryption (E2EE). This is ideal for quick, private exchanges." />
+    <meta name="theme-color" content="#e0eafc" />
+    <meta name="author" content="Erik Donath" />
+    <meta name="keywords" content="WebRTC, PeerJS, Chat, Direct Connect, P2P" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="manifest" href="manifest.json" />
+    <title>Page Not Found</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f6f8fa;
+        color: #222;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      .container {
+        background: #fff;
+        padding: 2.5em 2em 2em 2em;
+        border-radius: 14px;
+        box-shadow: 0 4px 24px 0 #0001;
+        text-align: center;
+        max-width: 360px;
+      }
+      h1 {
+        font-size: 2.3em;
+        margin-bottom: 0.2em;
+      }
+      p {
+        font-size: 1.15em;
+        margin-bottom: 0.8em;
+      }
+      .small {
+        color: #555;
+        font-size: 0.95em;
+      }
+    </style>
   </head>
   <body>
+    <div class="container">
+      <h1>Page couldn't load</h1>
+      <p>
+        Sorry, we couldn't find the page you were looking for.<br>
+        You can try checking the URL or return to the <a href="/">homepage</a>.
+      </p>
+      <div class="small" id="redirect-info"></div>
+    </div>
     <script>
-      var pathname = location.pathname;
-      var base = pathname.slice(0, pathname.lastIndexOf('/') + 1);
-      var path = pathname.slice(base.length) + location.search + location.hash;
-      var newUrl = base + '#?redirected&path=' + encodeURIComponent(path);
-      console.log("Redirecting to:", newUrl);
-      location.replace(newUrl);
+      const allowedRedirects = [
+        "/",
+        "/chat",
+        "/host",
+      ];
+
+      function normalizePath(path) {
+        return path.replace(/\/+$/, '') || '/';
+      }
+
+      const currentPath = normalizePath(location.pathname);
+
+      if (allowedRedirects.includes(currentPath)) {
+        const base = currentPath.slice(0, currentPath.lastIndexOf('/') + 1);
+        const path = currentPath.slice(base.length) + location.search + location.hash;
+        const newUrl = base + '#?redirected&path=' + encodeURIComponent(path);
+        document.getElementById('redirect-info').textContent =
+          'You are being redirected...';
+        setTimeout(() => {
+          location.replace(newUrl);
+        }, 250);
+      }
+      else {
+        document.getElementById('redirect-info').textContent =
+          'You tryied to acess: ' + currentPath;
+      }
     </script>
-    <p>Redirecting...</p>
   </body>
 </html>
