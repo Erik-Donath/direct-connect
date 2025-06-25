@@ -42,6 +42,11 @@ jobs:
         run: |
           jq '.homepage = "https://'"$GITHUB_ACTOR"'.github.io/${REPO_NAME}/"' package.json > temp.json && mv temp.json package.json
 
+      - name: 🏷️ Inject GIT_COMMIT_ID into service-worker.js
+        run: |
+          COMMIT_ID=$(git rev-parse --short HEAD)
+          sed -i "s/dev/$COMMIT_ID/" public/service-worker.js
+
       - name: 🔨 Build Project
         run: npm run build
 

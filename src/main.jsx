@@ -5,10 +5,21 @@ import './index.css';
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .catch(error => {
-        console.warn('Service worker registration failed:', error);
-      });
+    navigator.serviceWorker.register('service-worker.js').then(reg => {
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (
+            newWorker.state === 'activated' &&
+            navigator.serviceWorker.controller
+          ) {
+            window.location.reload();
+          }
+        };
+      };
+    });
+  }).catch(error => {
+    console.warn('Service worker registration failed:', error);
   });
 }
 
