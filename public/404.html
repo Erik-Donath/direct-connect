@@ -67,7 +67,11 @@
 
       const currentPath = normalizePath(location.pathname);
       const base = currentPath.slice(0, currentPath.lastIndexOf('/') + 1);
-      const path = currentPath.slice(base.length)
+      const path = currentPath.slice(base.length);
+
+      console.log("Currentpath:", currentPath);
+      console.log("Base:", base);
+      console.log("path:", path);
 
       if (allowedRedirects.includes(path)) {
         const newUrl = base + '#?redirected&path=' + encodeURIComponent(path + location.search + location.hash);
