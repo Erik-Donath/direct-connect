@@ -5,9 +5,8 @@ import Host from './pages/Host';
 import MainLayout from './components/MainLayout';
 
 export default function MainRouter() {
-  const base = import.meta.env.BASE_URL || '/';
   return (
-    <HashRouter basename={base}>
+    <HashRouter>
       <Routes>
         <Route element={<MainLayout title="Direct Connect" />}> 
           <Route path="/" element={<App />} />

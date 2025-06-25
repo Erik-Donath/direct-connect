@@ -46,7 +46,7 @@ export default function Host() {
     });
   }, [navigate, setNewProtocol, peerId]);
 
-  const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+  const baseUrl = window.location.origin + import.meta.env.BASE_URL || '/';
   const chatLink = peerId ? `${baseUrl}#/?host-id=${peerId}` : '';
 
   if (error) {
